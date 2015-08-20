@@ -1,7 +1,7 @@
 package jsm4s
 
 import java.io.OutputStream
-import java.util.concurrent.Executors
+import java.util.concurrent.{Executors, ExecutorService}
 
 import scala.collection._
 
@@ -13,7 +13,9 @@ object Algorithm{
 abstract class Algorithm (
 	val rows:Seq[SortedSet[Int]], val attributes:Int, val supps:Seq[Int]
 ) extends Runnable with ExtentFactory with IntentFactory with StatsCollector{
+	//
 	def this(objs:Seq[SortedSet[Int]], attributes:Int) = this(objs, attributes,Algorithm.supports(objs, attributes))
+	
 	val objects = rows.size
 	var sortAttributes = false
 	var minSupport = 0
@@ -59,13 +61,15 @@ trait StatsCollector {
 
 abstract class ParallelAlgorithm(
 	rows:Seq[SortedSet[Int]], attributes:Int, supps:Seq[Int],
-	val threads:Int=Runtime.getRuntime().availableProcessors(),
-	val cutOff:Int=1
+	val threads:Int,
+	val cutOff:Int
 ) extends Algorithm(rows, attributes, supps) {
-	def run = {
-		val pool = Executors.newFixedThreadPool(threads)
-		pool.shutdown
-	}
+
+	def this(objs:Seq[SortedSet[Int]], attributes:Int, threads:Int, cutOff:Int) = 
+		this(objs, attributes, Algorithm.supports(objs, attributes), threads, cutOff)
+	
+	val pool = Executors.newFixedThreadPool(threads)
+
 }
 
 abstract class CbO(rows:Seq[SortedSet[Int]], attrs:Int, supps:Seq[Int])
@@ -93,4 +97,60 @@ extends Algorithm(rows, attrs, supps) {
 		val B = rows.fold(fullIntent(attributes))((a,b) => a & b) // full intersection
 		method(A, B, 0)
 	}
+}
+
+trait GenericAlgorithm extends Algorithm {
+	def processQueue[T](value:T):Unit
+}
+
+trait GenericBCbO extends GenericAlgorithm{
+
+	var recDepth = 0
+
+	def method(A:SortedSet[Int], B:SortedSet[Int], y:Int):Unit = {
+		val q = mutable.Queue[(SortedSet[Int], SortedSet[Int], Int)]()
+		output(A,B)
+		for(j <- y until attributes) {
+			if(!B.contains(j)){
+				val ret = closeConcept(A, j)
+				if(ret._1){
+					val C = ret._2
+					val D = ret._3
+					if (B.until(j) == D.until(j)) q.enqueue((C, D, j+1))
+					else onCanonicalTestFailure()
+				}
+			}
+		}
+		recDepth +=1 
+		while(!q.isEmpty) processQueue(q.dequeue())
+		recDepth -=1
+	}	
+
+	def run = {
+		val A = fullExtent(objects)
+		val B = rows.fold(fullIntent(attributes))((a,b) => a & b) // full intersection
+		method(A, B, 0)
+	}
+}
+
+
+abstract class TpBCbO(rows:Seq[SortedSet[Int]], attrs:Int, threads:Int, cutOff:Int)
+extends ParallelAlgorithm(rows, attrs, threads, cutOff) with GenericBCbO{
+	def processQueue[T](value: T): Unit = {
+		def fn(t:(SortedSet[Int], SortedSet[Int], Int)) = serial.method(t._1, t._2, t._3)
+		value match{
+			case x:(SortedSet[Int], SortedSet[Int], Int) =>
+				if(recDepth <= cutOff)
+					method(x._1, x._2, x._3)
+				else
+					pool.submit(new Runnable(){ def run = fn(x) })
+			case _ =>
+		}
+	}
+	def serial: CbO
+
+  override def run = {
+  	super[GenericBCbO].run
+  	pool.shutdown
+  }
 }
