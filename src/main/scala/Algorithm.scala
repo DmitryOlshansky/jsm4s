@@ -28,7 +28,7 @@ abstract class Algorithm (
 
 	def closeConcept(A: SortedSet[Int], y:Int) = {
 		var C = emptyExtent
-		var D = fullIntent(attributes)
+		var D = fullIntent
 
 		var cnt = 0
 		for(i <- A) {
@@ -45,13 +45,15 @@ abstract class Algorithm (
 }
 
 trait ExtentFactory {
+	val objects:Int
 	def emptyExtent:SortedSet[Int]
-	def fullExtent(t:Int):SortedSet[Int]
+	def fullExtent:SortedSet[Int]
 }
 
 trait IntentFactory{
+	val attributes:Int
 	def emptyIntent:SortedSet[Int]
-	def fullIntent(t:Int):SortedSet[Int]
+	def fullIntent:SortedSet[Int]
 }
 
 trait StatsCollector {
@@ -93,8 +95,8 @@ extends Algorithm(rows, attrs, supps) {
 	}
 
 	def run = {
-		val A = fullExtent(objects)
-		val B = rows.fold(fullIntent(attributes))((a,b) => a & b) // full intersection
+		val A = fullExtent
+		val B = rows.fold(fullIntent)((a,b) => a & b) // full intersection
 		method(A, B, 0)
 	}
 }
@@ -127,8 +129,8 @@ trait GenericBCbO extends GenericAlgorithm{
 	}	
 
 	def run = {
-		val A = fullExtent(objects)
-		val B = rows.fold(fullIntent(attributes))((a,b) => a & b) // full intersection
+		val A = fullExtent
+		val B = rows.fold(fullIntent)((a,b) => a & b) // full intersection
 		method(A, B, 0)
 	}
 }

@@ -3,23 +3,23 @@ package jsm4s
 import scala.collection._
 
 trait BitExt extends ExtentFactory{
-	def emptyExtent = immutable.BitSet.empty
-	def fullExtent(attrs:Int) = immutable.BitSet(0.until(attrs) : _*)
+	val emptyExtent = immutable.BitSet.empty
+	val fullExtent = immutable.BitSet(0.until(objects) : _*)
 }
 
 trait TreeExt extends ExtentFactory{
-	def emptyExtent = immutable.TreeSet.empty
-	def fullExtent(attrs:Int) = immutable.TreeSet(0.until(attrs) : _*)
+	val emptyExtent = immutable.TreeSet.empty
+	val fullExtent = immutable.TreeSet(0.until(objects) : _*)
 }
 
 trait BitInt extends IntentFactory{
-	def emptyIntent = immutable.BitSet.empty
-	def fullIntent(objs:Int) = immutable.BitSet(0.until(objs) : _*)
+	val emptyIntent = immutable.BitSet.empty
+	val fullIntent = immutable.BitSet(0.until(attributes) : _*)
 }
 
 trait TreeInt extends IntentFactory{
-	def emptyIntent = immutable.TreeSet.empty
-	def fullIntent(attrs:Int) = immutable.TreeSet(0.until(attrs) : _*)
+	val emptyIntent = immutable.TreeSet.empty
+	val fullIntent = immutable.TreeSet(0.until(attributes) : _*)
 }
 
 class TreeBitCbO(rows:Seq[SortedSet[Int]], attrs:Int) extends CbO(rows, attrs)
