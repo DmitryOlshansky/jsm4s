@@ -32,12 +32,18 @@ extends TpBCbO(rows, attrs, threads, cutOff) with TreeExt with BitInt{
 	def serial = new TreeBitCbO(rows, attrs) // note: serial version of algorithm
 }
 
+class TreeBitNQPBCbO(rows:Seq[SortedSet[Int]], attrs:Int, threads:Int, cutOff:Int, tid:Int=0)
+extends NoQueueBCbO(rows, attrs, threads, cutOff, tid) with TreeExt with BitInt{
+	def fork(tid:Int) = new TreeBitNQPBCbO(rows, attrs, threads, cutOff, tid)
+}
+
 object JSM{
 	def apply(name:String, rows:Seq[immutable.SortedSet[Int]]) = {
 		val attrs = rows.map(x => x.max).fold(0)((a,b) => Math.max(a,b)) + 1
 		name match {
 			case "cbo" => new TreeBitCbO(rows, attrs)
 			case "tp-bcbo" => new TreeBitTpBCbO(rows, attrs, Runtime.getRuntime().availableProcessors(), 1)
+			case "nqp-bcbo" => new TreeBitNQPBCbO(rows, attrs, Runtime.getRuntime().availableProcessors(), 1)
 			case _ => throw new Exception(s"No algorithm ${name} is supported") 
 		}
 	}

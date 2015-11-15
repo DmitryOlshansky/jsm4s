@@ -1,7 +1,7 @@
 package jsm4s
 
 import java.io.OutputStream
-import java.util.concurrent.{Executors, ExecutorService}
+import java.util.concurrent.{Executors, ExecutorService, TimeUnit}
 
 import scala.collection._
 
@@ -154,5 +154,46 @@ extends ParallelAlgorithm(rows, attrs, threads, cutOff) with GenericBCbO{
   override def run = {
   	super[GenericBCbO].run
   	pool.shutdown
+  	pool.awaitTermination(10, TimeUnit.DAYS)
   }
+}
+
+
+
+abstract class NoQueueBCbO(rows:Seq[SortedSet[Int]], attrs:Int, threads:Int, cutOff:Int, tid:Int)
+extends Algorithm(rows, attrs) with GenericBCbO{
+	var counter = 0
+
+	def processQueue[T](value: T): Unit = {
+		value match{
+			case x:(SortedSet[Int], SortedSet[Int], Int) =>
+				if(recDepth > cutOff || (recDepth < cutOff && tid == 0))
+					method(x._1, x._2, x._3) // main thread < cutOff or post cutOff
+				else{
+					// round-robin among threads, each remeber their tid
+					if (counter == tid)
+						method(x._1, x._2, x._3)
+					counter += 1
+					if(counter == threads) counter = 0
+				}
+			case _ =>
+		}
+	}
+
+	def fork(tid:Int): NoQueueBCbO // creates concrete descendant type
+
+	override def run = {
+		val A = fullExtent
+		val B = rows.fold(fullIntent)((a,b) => a & b) // full intersection
+		val pool = Executors.newFixedThreadPool(threads)
+		for(t <- 0 until threads)
+			pool.submit(new Runnable(){
+				val algo = fork(t)
+				def run = {
+					algo.method(A, B, 0)
+				}
+			})
+		pool.shutdown
+		pool.awaitTermination(10, TimeUnit.DAYS)
+	}
 }
