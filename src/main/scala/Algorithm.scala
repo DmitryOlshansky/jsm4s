@@ -1,6 +1,6 @@
 package jsm4s
 
-import java.io.OutputStream
+import java.io.{ByteArrayOutputStream, OutputStream}
 import java.util.concurrent.{Executors, ExecutorService, TimeUnit}
 
 import scala.collection._
@@ -19,12 +19,21 @@ abstract class Algorithm (
 	val objects = rows.size
 	var sortAttributes = false
 	var minSupport = 0
+
 	var out: OutputStream = System.out
+	val buf = new ByteArrayOutputStream()
 	// filter on extent-intent pair
 	var filter = (a:SortedSet[Int],b:SortedSet[Int])=>true // always accept hypot
 
-	def output(extent:SortedSet[Int], intent:SortedSet[Int]) = 
-		out.write(intent.mkString(""," ", "\n").getBytes("UTF-8"))
+	def output(extent:SortedSet[Int], intent:SortedSet[Int]) = {
+		buf.write(intent.mkString("", " ", "\n").getBytes("UTF-8"))
+		if (buf.size() > 100000) {
+			buf.writeTo(out)
+			buf.reset()
+		}
+	}
+
+	def flush()
 
 	def closeConcept(A: SortedSet[Int], y:Int) = {
 		var C = emptyExtent
