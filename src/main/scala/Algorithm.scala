@@ -28,12 +28,14 @@ abstract class Algorithm (
 	def output(extent:SortedSet[Int], intent:SortedSet[Int]) = {
 		buf.write(intent.mkString("", " ", "\n").getBytes("UTF-8"))
 		if (buf.size() > 100000) {
-			buf.writeTo(out)
-			buf.reset()
+			flush()
 		}
 	}
 
-	def flush()
+	def flush() = {
+		buf.writeTo(out)
+		buf.reset()
+	}
 
 	def closeConcept(A: SortedSet[Int], y:Int) = {
 		var C = emptyExtent
@@ -107,11 +109,12 @@ extends Algorithm(rows, attrs, supps) {
 		val A = fullExtent
 		val B = rows.fold(fullIntent)((a,b) => a & b) // full intersection
 		method(A, B, 0)
+		flush()
 	}
 }
 
 trait GenericAlgorithm extends Algorithm {
-	def processQueue[T](value:T):Unit
+	def processQueue(value:AnyRef):Unit
 }
 
 trait GenericBCbO extends GenericAlgorithm{
@@ -147,16 +150,13 @@ trait GenericBCbO extends GenericAlgorithm{
 
 abstract class TpBCbO(rows:Seq[SortedSet[Int]], attrs:Int, threads:Int, cutOff:Int)
 extends ParallelAlgorithm(rows, attrs, threads, cutOff) with GenericBCbO{
-	def processQueue[T](value: T): Unit = {
+	def processQueue(value: AnyRef): Unit = {
 		def fn(t:(SortedSet[Int], SortedSet[Int], Int)) = serial.method(t._1, t._2, t._3)
-		value match{
-			case x:(SortedSet[Int], SortedSet[Int], Int) =>
-				if(recDepth <= cutOff)
-					method(x._1, x._2, x._3)
-				else
-					pool.submit(new Runnable(){ def run = fn(x) })
-			case _ =>
-		}
+		val x = value.asInstanceOf[(SortedSet[Int], SortedSet[Int], Int)]
+		if(recDepth <= cutOff)
+			method(x._1, x._2, x._3)
+		else
+			pool.submit(new Runnable(){ def run = fn(x) })
 	}
 	def serial: CbO
 
@@ -173,19 +173,16 @@ abstract class NoQueueBCbO(rows:Seq[SortedSet[Int]], attrs:Int, threads:Int, cut
 extends Algorithm(rows, attrs) with GenericBCbO{
 	var counter = 0
 
-	def processQueue[T](value: T): Unit = {
-		value match{
-			case x:(SortedSet[Int], SortedSet[Int], Int) =>
-				if(recDepth > cutOff || (recDepth < cutOff && tid == 0))
-					method(x._1, x._2, x._3) // main thread < cutOff or post cutOff
-				else{
-					// round-robin among threads, each remeber their tid
-					if (counter == tid)
-						method(x._1, x._2, x._3)
-					counter += 1
-					if(counter == threads) counter = 0
-				}
-			case _ =>
+	def processQueue(value: AnyRef): Unit = {
+		val x = value.asInstanceOf[(SortedSet[Int], SortedSet[Int], Int)]
+		if(recDepth > cutOff || (recDepth < cutOff && tid == 0))
+			method(x._1, x._2, x._3) // main thread < cutOff or post cutOff
+		else{
+			// round-robin among threads, each remeber their tid
+			if (counter == tid)
+				method(x._1, x._2, x._3)
+			counter += 1
+			if(counter == threads) counter = 0
 		}
 	}
 
