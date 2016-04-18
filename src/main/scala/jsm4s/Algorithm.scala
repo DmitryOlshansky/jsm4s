@@ -5,16 +5,27 @@ import java.util.concurrent.{Executors, ExecutorService, TimeUnit}
 
 import scala.collection._
 
+/// A minimal integer set for FCA computation
+trait FcaSet extends Iterable[Int]{
+	def contains(x:Int):Boolean
+	def +=(x:Int): FcaSet
+	def &(set: FcaSet): FcaSet
+	def until(j:Int):FcaSet
+	def dup:FcaSet
+	def ==(that:FcaSet):Boolean
+  def max: Int
+}
+
 object Algorithm{
-	def supports(rows:Seq[SortedSet[Int]], attributes:Int) =
+	def supports(rows:Seq[FcaSet], attributes:Int) =
 		(0 until attributes).map(a => rows.count(r => r contains a))
 }
 
 abstract class Algorithm (
-	val rows:Seq[SortedSet[Int]], val attributes:Int, val supps:Seq[Int]
+	val rows:Seq[FcaSet], val attributes:Int, val supps:Seq[Int]
 ) extends Runnable with ExtentFactory with IntentFactory with StatsCollector{
 	//
-	def this(objs:Seq[SortedSet[Int]], attributes:Int) = this(objs, attributes,Algorithm.supports(objs, attributes))
+	def this(objs:Seq[FcaSet], attributes:Int) = this(objs, attributes,Algorithm.supports(objs, attributes))
 	
 	val objects = rows.size
 	var sortAttributes = false
@@ -23,9 +34,9 @@ abstract class Algorithm (
 	var out: OutputStream = System.out
 	val buf = new ByteArrayOutputStream()
 	// filter on extent-intent pair
-	var filter = (a:SortedSet[Int],b:SortedSet[Int])=>true // always accept hypot
+	var filter = (a:FcaSet,b:FcaSet)=>true // always accept hypot
 
-	def output(extent:SortedSet[Int], intent:SortedSet[Int]) = {
+	def output(extent:FcaSet, intent:FcaSet) = {
 		buf.write(intent.mkString("", " ", "\n").getBytes("UTF-8"))
 		if (buf.size() > 100000) {
 			flush()
@@ -37,7 +48,7 @@ abstract class Algorithm (
 		buf.reset()
 	}
 
-	def closeConcept(A: SortedSet[Int], y:Int) = {
+	def closeConcept(A: FcaSet, y:Int) = {
 		var C = emptyExtent
 		var D = fullIntent
 
@@ -45,7 +56,7 @@ abstract class Algorithm (
 		for(i <- A) {
 			if(rows(i) contains y){
 				C += i
-				D = D.intersect(rows(i))
+				D = D & rows(i)
 				cnt += 1
 			}
 		}
@@ -57,14 +68,14 @@ abstract class Algorithm (
 
 trait ExtentFactory {
 	val objects:Int
-	def emptyExtent:SortedSet[Int]
-	def fullExtent:SortedSet[Int]
+	def emptyExtent:FcaSet
+	def fullExtent:FcaSet
 }
 
 trait IntentFactory{
 	val attributes:Int
-	def emptyIntent:SortedSet[Int]
-	def fullIntent:SortedSet[Int]
+	def emptyIntent:FcaSet
+	def fullIntent:FcaSet
 }
 
 trait StatsCollector {
@@ -73,24 +84,24 @@ trait StatsCollector {
 }
 
 abstract class ParallelAlgorithm(
-	rows:Seq[SortedSet[Int]], attributes:Int, supps:Seq[Int],
+	rows:Seq[FcaSet], attributes:Int, supps:Seq[Int],
 	val threads:Int,
 	val cutOff:Int
 ) extends Algorithm(rows, attributes, supps) {
 
-	def this(objs:Seq[SortedSet[Int]], attributes:Int, threads:Int, cutOff:Int) = 
+	def this(objs:Seq[FcaSet], attributes:Int, threads:Int, cutOff:Int) = 
 		this(objs, attributes, Algorithm.supports(objs, attributes), threads, cutOff)
 	
 	val pool = Executors.newFixedThreadPool(threads)
 
 }
 
-abstract class CbO(rows:Seq[SortedSet[Int]], attrs:Int, supps:Seq[Int])
+abstract class CbO(rows:Seq[FcaSet], attrs:Int, supps:Seq[Int])
 extends Algorithm(rows, attrs, supps) {
 
-	def this(rows:Seq[SortedSet[Int]], attrs:Int) = this(rows, attrs, Algorithm.supports(rows, attrs))
+	def this(rows:Seq[FcaSet], attrs:Int) = this(rows, attrs, Algorithm.supports(rows, attrs))
 
-	def method(A:SortedSet[Int], B:SortedSet[Int], y:Int):Unit = {
+	def method(A:FcaSet, B:FcaSet, y:Int):Unit = {
 		output(A,B)
 		for(j <- y until attributes) {
 			if(!B.contains(j)){
@@ -121,8 +132,8 @@ trait GenericBCbO extends GenericAlgorithm{
 
 	var recDepth = 0
 
-	def method(A:SortedSet[Int], B:SortedSet[Int], y:Int):Unit = {
-		val q = mutable.Queue[(SortedSet[Int], SortedSet[Int], Int)]()
+	def method(A:FcaSet, B:FcaSet, y:Int):Unit = {
+		val q = mutable.Queue[(FcaSet, FcaSet, Int)]()
 		output(A,B)
 		for(j <- y until attributes) {
 			if(!B.contains(j)){
@@ -148,11 +159,11 @@ trait GenericBCbO extends GenericAlgorithm{
 }
 
 
-abstract class TpBCbO(rows:Seq[SortedSet[Int]], attrs:Int, threads:Int, cutOff:Int)
+abstract class TpBCbO(rows:Seq[FcaSet], attrs:Int, threads:Int, cutOff:Int)
 extends ParallelAlgorithm(rows, attrs, threads, cutOff) with GenericBCbO{
 	def processQueue(value: AnyRef): Unit = {
-		def fn(t:(SortedSet[Int], SortedSet[Int], Int)) = serial.method(t._1, t._2, t._3)
-		val x = value.asInstanceOf[(SortedSet[Int], SortedSet[Int], Int)]
+		def fn(t:(FcaSet, FcaSet, Int)) = serial.method(t._1, t._2, t._3)
+		val x = value.asInstanceOf[(FcaSet, FcaSet, Int)]
 		if(recDepth <= cutOff)
 			method(x._1, x._2, x._3)
 		else
@@ -169,12 +180,12 @@ extends ParallelAlgorithm(rows, attrs, threads, cutOff) with GenericBCbO{
 
 
 
-abstract class NoQueueBCbO(rows:Seq[SortedSet[Int]], attrs:Int, threads:Int, cutOff:Int, tid:Int)
+abstract class NoQueueBCbO(rows:Seq[FcaSet], attrs:Int, threads:Int, cutOff:Int, tid:Int)
 extends Algorithm(rows, attrs) with GenericBCbO{
 	var counter = 0
 
 	def processQueue(value: AnyRef): Unit = {
-		val x = value.asInstanceOf[(SortedSet[Int], SortedSet[Int], Int)]
+		val x = value.asInstanceOf[(FcaSet, FcaSet, Int)]
 		if(recDepth > cutOff || (recDepth < cutOff && tid == 0))
 			method(x._1, x._2, x._3) // main thread < cutOff or post cutOff
 		else{

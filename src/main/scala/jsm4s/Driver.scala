@@ -9,12 +9,12 @@ import com.typesafe.scalalogging.LazyLogging
 object FIMI{
 	def apply(in:InputStream) = {
 		val scanner = new Scanner(in)
-		var rows = mutable.ArrayBuffer[immutable.SortedSet[Int]]()
+		var rows = mutable.ArrayBuffer[FcaSet]()
 		while(scanner.hasNext()){
 			val line = scanner.nextLine
 			val inner = new Scanner(line)
 			inner.useDelimiter("\\s+")
-			var set = immutable.SortedSet[Int]()
+			var set = BitSet.empty.dup
 			while(inner.hasNext){
 				set += inner.nextInt()
 			}
@@ -30,7 +30,7 @@ case class Config(verbose:Int=1, sort:Boolean=true, algorithm:String="cbo",
 object Driver extends LazyLogging{
 	def main(args: Array[String]) = {
 		val parser = new scopt.OptionParser[Config]("jsm4s cmd-line tool") {
-			head("jsm4s", "v0.1.0") // TODO: get version from sbt-git plugin
+			head("jsm4s", "v0.2.0") // TODO: get version from sbt-git plugin
 			opt[String]('a', "algo") required() valueName("<algorithm>") action {
 				(x,c) => c.copy(algorithm=x)
 			} text ("'algorithm' is one of cbo, fcbo, tp-cbo, tp-fcbo.")
