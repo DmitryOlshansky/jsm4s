@@ -49,7 +49,7 @@ abstract class Algorithm (
 	}
 
 	def closeConcept(A: FcaSet, y:Int) = {
-		var C = emptyExtent
+		var C = emptyExtent.dup
 		var D = fullIntent
 
 		var cnt = 0
