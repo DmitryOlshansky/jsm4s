@@ -9,7 +9,7 @@ class SortedArray(var table:Array[Int], var tsize:Int) extends FcaSet with Seria
 
   override def iterator: Iterator[Int] = new Iterator[Int]{
     var i = 0
-    override def hasNext: Boolean = i != table.length
+    override def hasNext: Boolean = i != tsize
 
     override def next(): Int = {
       val item = table(i)
@@ -42,8 +42,6 @@ class SortedArray(var table:Array[Int], var tsize:Int) extends FcaSet with Seria
 
   override def dup: FcaSet = new SortedArray(Arrays.copyOf(table, table.length), tsize)
 
-  def max: Int = if(table.length > 0) table(table.length-1) else 0
-
   def ==(that:FcaSet):Boolean = {
     val target = that.asInstanceOf[SortedArray]
     for(i <- 0 until math.min(tsize, target.tsize)){
@@ -51,6 +49,8 @@ class SortedArray(var table:Array[Int], var tsize:Int) extends FcaSet with Seria
     }
     true
   }
+
+  override def subsetOf(that: FcaSet, j: Int): Boolean = ???
 }
 
 object SortedArray{

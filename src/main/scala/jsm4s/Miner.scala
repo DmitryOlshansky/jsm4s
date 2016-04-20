@@ -6,28 +6,10 @@ import java.util.Scanner
 import scala.collection._
 import com.typesafe.scalalogging.LazyLogging
 
-object FIMI{
-	def apply(in:InputStream) = {
-		val scanner = new Scanner(in)
-		var rows = mutable.ArrayBuffer[FcaSet]()
-		while(scanner.hasNext()){
-			val line = scanner.nextLine
-			val inner = new Scanner(line)
-			inner.useDelimiter("\\s+")
-			var set = BitSet.empty.dup
-			while(inner.hasNext){
-				set += inner.nextInt()
-			}
-			rows += set
-		}
-		rows.toSeq
-	}
-}
-
-case class Config(verbose:Int=1, sort:Boolean=true, algorithm:String="cbo", 
+case class Config(verbose:Int=1, sort:Boolean=true, algorithm:String="cbo",
 	minSupport:Int=0, input:String="", output:String="")
 
-object Driver extends LazyLogging{
+object Miner extends LazyLogging{
 	def main(args: Array[String]) = {
 		val parser = new scopt.OptionParser[Config]("jsm4s cmd-line tool") {
 			head("jsm4s", "v0.2.0") // TODO: get version from sbt-git plugin
@@ -48,9 +30,9 @@ object Driver extends LazyLogging{
 			case Some(Config(verbose, sort, algo, minSupp, in, out)) =>
 				val before = System.nanoTime()
 				val output = if(out != "") new FileOutputStream(out) else System.out
-				val sets = if (in != "") FIMI(new FileInputStream(in)) else FIMI(System.in)
-				// sets.foreach(x => println(x.mkString(" ")))
-				val jsm = JSM(algo, sets)
+				val sets = if (in != "") FIMI.load(new FileInputStream(in)) else FIMI.load(System.in)
+
+				val jsm = FIMI.algorithm(algo, sets)
 				jsm.minSupport = minSupp
 				jsm.sortAttributes = sort
 				jsm.out = output

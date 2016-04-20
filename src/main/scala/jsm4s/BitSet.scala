@@ -1,56 +1,45 @@
 package jsm4s
 import java.util.Arrays
-import java.lang.Long.numberOfLeadingZeros
 
-class BitSet(var table: Array[Long], var length:Int) extends FcaSet with Serializable{
+class BitSet(val table: Array[Long], val length:Int) extends FcaSet with Serializable{
 
-  def this(seq: Iterable[Int]){
-    this(Array[Long](), 0)
+  def this(seq: Iterable[Int], length: Int){
+    this(Array.ofDim[Long]((length+63)/64), length)
     for(s <- seq.iterator) this += s
   }
 
   override def contains(x: Int): Boolean = {
-    if(x/64 < table.length) (table(x/64) & (1L<<(x%64))) != 0
+    if(x < length) (table(x/64) & (1L<<(x%64))) != 0
     else false
   }
 
   override def until(j: Int): FcaSet = {
     val rem = if(j % 64 > 0) 1 else 0
     val mask = 1L<<(j%64)
-    val newTable = Arrays.copyOf(table, (j/64)+rem)
-    if(rem > 0 ) // mask away upper bits in the last word
-      newTable(newTable.length-1) &= (mask-1)
-    new BitSet(newTable, j)
+    val newTable = Arrays.copyOf(table, table.length)
+    for (i <- j/64+rem until table.length)
+      newTable(i) = 0
+    if(rem > 0) // mask away upper bits in the last word
+      newTable(j/64) &= (mask-1)
+    new BitSet(newTable, length)
   }
 
   override def &(set: FcaSet): FcaSet = {
     val bitset = set.asInstanceOf[BitSet]
-    val newLength = math.min(table.size, bitset.table.size)
-    val result = Array.ofDim[Long](newLength)
+    val result = Array.ofDim[Long](table.length)
     var j = 0
-    for(i <- 0 until newLength) {
+    for(i <- 0 until table.length) {
       result(i) = table(i) & bitset.table(i)
-      val k = 64 - numberOfLeadingZeros(result(i))
-      if (k != 0){
-        j = i*64 + k.toInt
-      }
     }
-    new BitSet(result, j)
+    new BitSet(result, length)
   }
 
   override def +=(x: Int): FcaSet = {
-    if(x/64 >= table.size) {
-      val newSize = if(table.isEmpty) 4 else table.length*2
-      table = Arrays.copyOf(table, newSize)
-    }
-    length = math.max(x, length)
     table(x/64) |= 1L<<(x%64)
     this
   }
 
-  override def dup: FcaSet = new BitSet(Arrays.copyOf(table, length), length)
-
-  override def max: Int = length
+  override def dup: FcaSet = new BitSet(Arrays.copyOf(table, table.length), length)
 
   override def iterator: Iterator[Int] = {
     val len = length
@@ -74,23 +63,80 @@ class BitSet(var table: Array[Long], var length:Int) extends FcaSet with Seriali
 
   override def ==(set: FcaSet): Boolean = {
     val bitset = set.asInstanceOf[BitSet]
-    if(bitset.length != length) return false
     for(i <- 0 until table.size)
       if(table(i) != bitset.table(i)) return false
     true
   }
+
+  override def subsetOf(that: FcaSet, j: Int): Boolean = {
+    val bitset = that.asInstanceOf[BitSet]
+    val rem = j % 64
+    for(i <- 0 until j/64) {
+      if((table(i) & bitset.table(i)) != bitset.table(i)) return false
+    }
+    if(rem > 0){
+      val mask =  (1L<<rem)-1
+      val r = table(table.length-1) & mask & bitset.table(bitset.table.length-1)
+      if(r != (table(table.length-1) & mask)) return false
+    }
+    true
+  }
 }
 
-object BitSet {
-  def empty = new BitSet(Array[Long](), 0)
-  def full(j:Int) = {
-    val words = j/64
-    val rem = if(j % 64 > 0) 1 else 0
-    val mask = 1L<<(j%64)
+object BitSet{
+  def empty(size:Int) = new BitSet(Array.ofDim[Long]((size+63)/64), size)
+  def full(size:Int) = {
+    val words = size/64
+    val rem = if(size % 64 > 0) 1 else 0
+    val mask = 1L<<(size%64)
     val arr = Array.ofDim[Long](words + rem)
-    Arrays.fill(arr, -1)
+    Arrays.fill(arr, -1L)
     if(rem > 0) // mask away upper bits in the last word
       arr(arr.length-1) &= (mask-1)
-    new BitSet(arr, j)
+    new BitSet(arr, size)
+  }
+}
+
+class IntentBitSet(table: Array[Long]) extends BitSet(table, FcaSet.attributes) {
+  def this(iterable: Iterable[Int]) = {
+    this(Array.ofDim[Long]((FcaSet.attributes+63)/64))
+    for(x <- iterable) this += x
+  }
+}
+
+object IntentBitSet{
+  def empty = new IntentBitSet(Array.ofDim[Long]((FcaSet.attributes+63)/64))
+  def full = {
+    val size = FcaSet.attributes
+    val words = size/64
+    val rem = if(size % 64 > 0) 1 else 0
+    val mask = 1L<<(size%64)
+    val arr = Array.ofDim[Long](words + rem)
+    Arrays.fill(arr, -1L)
+    if(rem > 0) // mask away upper bits in the last word
+      arr(arr.length-1) &= (mask-1)
+    new IntentBitSet(arr)
+  }
+}
+
+class ExtentBitSet(table: Array[Long]) extends BitSet(table, FcaSet.objects) {
+  def this(iterable: Iterable[Int]) = {
+    this(Array.ofDim[Long]((FcaSet.objects+63)/64))
+    for(x <- iterable) this += x
+  }
+}
+
+object ExtentBitSet{
+  def empty = new ExtentBitSet(Array.ofDim[Long]((FcaSet.objects+63)/64))
+  def full = {
+    val size = FcaSet.objects
+    val words = size/64
+    val rem = if(size % 64 > 0) 1 else 0
+    val mask = 1L<<(size%64)
+    val arr = Array.ofDim[Long](words + rem)
+    Arrays.fill(arr, -1L)
+    if(rem > 0) // mask away upper bits in the last word
+      arr(arr.length-1) &= (mask-1)
+    new ExtentBitSet(arr)
   }
 }

@@ -13,7 +13,12 @@ trait FcaSet extends Iterable[Int]{
 	def until(j:Int):FcaSet
 	def dup:FcaSet
 	def ==(that:FcaSet):Boolean
-  def max: Int
+  def subsetOf(that:FcaSet, j:Int):Boolean
+}
+
+object FcaSet {
+  var attributes = 0
+  var objects = 0
 }
 
 object Algorithm{
@@ -38,7 +43,7 @@ abstract class Algorithm (
 
 	def output(extent:FcaSet, intent:FcaSet) = {
 		buf.write(intent.mkString("", " ", "\n").getBytes("UTF-8"))
-		if (buf.size() > 100000) {
+		if (buf.size() > 16384) {
 			flush()
 		}
 	}
@@ -51,15 +56,26 @@ abstract class Algorithm (
 	def closeConcept(A: FcaSet, y:Int) = {
 		var C = emptyExtent.dup
 		var D = fullIntent
-
+    /*var Ci = immutable.TreeSet[Int]()
+    var Di = immutable.TreeSet[Int]()
+    for(x <- fullIntent)
+      Di += x*/
 		var cnt = 0
 		for(i <- A) {
 			if(rows(i) contains y){
 				C += i
+        //Ci += i
 				D = D & rows(i)
+        /*var E = immutable.TreeSet[Int]()
+        for(x <- rows(i)) E += x
+        Di = Di & E*/
 				cnt += 1
 			}
 		}
+    /*for(x <- C) assert(Ci.contains(x))
+    for(x <- Ci) assert(C.contains(x))
+    for(x <- D) assert(Di.contains(x))
+    for(x <- Di) assert(D.contains(x))*/
 		(cnt >= minSupport, C, D)
 	}
 
@@ -158,6 +174,52 @@ trait GenericBCbO extends GenericAlgorithm{
 	}
 }
 
+
+abstract class GenericFCbO(
+  rows:Seq[FcaSet], attributes:Int
+) extends Algorithm(rows, attributes) with GenericAlgorithm {
+
+  var recDepth = 0
+
+  def method(A: FcaSet, B: FcaSet, y: Int, errors: Array[FcaSet], N: Int): Unit = {
+    val q = mutable.Queue[(FcaSet, FcaSet, Int, Array[FcaSet], Int)]()
+    output(A, B)
+    for (j <- y until attributes) {
+      if (!B.contains(j)) {
+        if (errors(N + j).subsetOf(B, j)) {
+          val ret = closeConcept(A, j)
+          if (ret._1) {
+            val C = ret._2
+            val D = ret._3
+            if (B.until(j) == D.until(j)) q.enqueue((C, D, j + 1, errors, N + attributes))
+            else {
+              errors(N + j) = D
+              onCanonicalTestFailure()
+            }
+          }
+        }
+      }
+    }
+    recDepth += 1
+    while (!q.isEmpty) processQueue(q.dequeue())
+    recDepth -= 1
+  }
+
+  def run = {
+    val A = fullExtent
+    val B = rows.fold(fullIntent)((a,b) => a & b) // full intersection
+    val implied = Array.ofDim[FcaSet]((attributes+1)*attributes)
+    for (i <- 0 until((attributes+1)*attributes)) implied(i) = emptyIntent
+    method(A, B, 0, implied, 0)
+  }
+}
+
+abstract class FCbO(rows:Seq[FcaSet], attrs:Int) extends GenericFCbO(rows, attrs){
+  def processQueue(value: AnyRef): Unit = {
+    val x = value.asInstanceOf[(FcaSet, FcaSet, Int, Array[FcaSet], Int)]
+    method(x._1, x._2, x._3, x._4, x._5)
+  }
+}
 
 abstract class TpBCbO(rows:Seq[FcaSet], attrs:Int, threads:Int, cutOff:Int)
 extends ParallelAlgorithm(rows, attrs, threads, cutOff) with GenericBCbO{
