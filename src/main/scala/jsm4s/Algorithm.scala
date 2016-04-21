@@ -56,26 +56,14 @@ abstract class Algorithm (
 	def closeConcept(A: FcaSet, y:Int) = {
 		var C = emptyExtent.dup
 		var D = fullIntent
-    /*var Ci = immutable.TreeSet[Int]()
-    var Di = immutable.TreeSet[Int]()
-    for(x <- fullIntent)
-      Di += x*/
 		var cnt = 0
 		for(i <- A) {
 			if(rows(i) contains y){
 				C += i
-        //Ci += i
 				D = D & rows(i)
-        /*var E = immutable.TreeSet[Int]()
-        for(x <- rows(i)) E += x
-        Di = Di & E*/
 				cnt += 1
 			}
 		}
-    /*for(x <- C) assert(Ci.contains(x))
-    for(x <- Ci) assert(C.contains(x))
-    for(x <- D) assert(Di.contains(x))
-    for(x <- Di) assert(D.contains(x))*/
 		(cnt >= minSupport, C, D)
 	}
 
