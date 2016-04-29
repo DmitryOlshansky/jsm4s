@@ -27,7 +27,7 @@ object Algorithm{
 }
 
 abstract class Algorithm (
-	val rows:Seq[FcaSet], val attributes:Int, val supps:Seq[Int]
+	var rows:Seq[FcaSet], val attributes:Int, val supps:Seq[Int]
 ) extends Runnable with ExtentFactory with IntentFactory with StatsCollector{
 	//
 	def this(objs:Seq[FcaSet], attributes:Int) = this(objs, attributes,Algorithm.supports(objs, attributes))
@@ -36,13 +36,22 @@ abstract class Algorithm (
 	var sortAttributes = false
 	var minSupport = 0
 
+	val weights = Array.ofDim[Int](attributes)
+	for(r <- rows; e <- r){
+		weights(e) += 1
+	}
+	val order = weights.zipWithIndex.sortBy(_._1).map(_._2)
+	val revMapping = Array.ofDim[Int](attributes)
+	for(i <- 0 until attributes) revMapping(order(i)) = i
+	rows = rows.map(x => new BitSet(x.map(revMapping), attributes))
+
 	var out: OutputStream = System.out
 	val buf = new ByteArrayOutputStream()
 	// filter on extent-intent pair
 	var filter = (a:FcaSet,b:FcaSet)=>true // always accept hypot
 
 	def output(extent:FcaSet, intent:FcaSet) = {
-		buf.write(intent.mkString("", " ", "\n").getBytes("UTF-8"))
+		buf.write(intent.map(order).mkString("", " ", "\n").getBytes("UTF-8"))
 		if (buf.size() > 16384) {
 			flush()
 		}
@@ -107,7 +116,8 @@ extends Algorithm(rows, attrs, supps) {
 
 	def method(A:FcaSet, B:FcaSet, y:Int):Unit = {
 		output(A,B)
-		for(j <- y until attributes) {
+		var j = y
+		while(j < attributes) {
 			if(!B.contains(j)){
 				val ret = closeConcept(A, j)
 				if(ret._1){
@@ -117,6 +127,7 @@ extends Algorithm(rows, attrs, supps) {
 					else onCanonicalTestFailure()
 				}
 			}
+			j += 1
 		}
 	}
 
@@ -130,137 +141,4 @@ extends Algorithm(rows, attrs, supps) {
 
 trait GenericAlgorithm extends Algorithm {
 	def processQueue(value:AnyRef):Unit
-}
-
-trait GenericBCbO extends GenericAlgorithm{
-
-	var recDepth = 0
-
-	def method(A:FcaSet, B:FcaSet, y:Int):Unit = {
-		val q = mutable.Queue[(FcaSet, FcaSet, Int)]()
-		output(A,B)
-		for(j <- y until attributes) {
-			if(!B.contains(j)){
-				val ret = closeConcept(A, j)
-				if(ret._1){
-					val C = ret._2
-					val D = ret._3
-					if (B.until(j) == D.until(j)) q.enqueue((C, D, j+1))
-					else onCanonicalTestFailure()
-				}
-			}
-		}
-		recDepth +=1 
-		while(!q.isEmpty) processQueue(q.dequeue())
-		recDepth -=1
-	}	
-
-	def run = {
-		val A = fullExtent
-		val B = rows.fold(fullIntent)((a,b) => a & b) // full intersection
-		method(A, B, 0)
-	}
-}
-
-
-abstract class GenericFCbO(
-  rows:Seq[FcaSet], attributes:Int
-) extends Algorithm(rows, attributes) with GenericAlgorithm {
-
-  var recDepth = 0
-
-  def method(A: FcaSet, B: FcaSet, y: Int, errors: Array[FcaSet], N: Int): Unit = {
-    val q = mutable.Queue[(FcaSet, FcaSet, Int, Array[FcaSet], Int)]()
-    output(A, B)
-    for (j <- y until attributes) {
-      if (!B.contains(j)) {
-        if (errors(N + j).subsetOf(B, j)) {
-          val ret = closeConcept(A, j)
-          if (ret._1) {
-            val C = ret._2
-            val D = ret._3
-            if (B.until(j) == D.until(j)) q.enqueue((C, D, j + 1, errors, N + attributes))
-            else {
-              errors(N + j) = D
-              onCanonicalTestFailure()
-            }
-          }
-        }
-      }
-    }
-    recDepth += 1
-    while (!q.isEmpty) processQueue(q.dequeue())
-    recDepth -= 1
-  }
-
-  def run = {
-    val A = fullExtent
-    val B = rows.fold(fullIntent)((a,b) => a & b) // full intersection
-    val implied = Array.ofDim[FcaSet]((attributes+1)*attributes)
-    for (i <- 0 until((attributes+1)*attributes)) implied(i) = emptyIntent
-    method(A, B, 0, implied, 0)
-  }
-}
-
-abstract class FCbO(rows:Seq[FcaSet], attrs:Int) extends GenericFCbO(rows, attrs){
-  def processQueue(value: AnyRef): Unit = {
-    val x = value.asInstanceOf[(FcaSet, FcaSet, Int, Array[FcaSet], Int)]
-    method(x._1, x._2, x._3, x._4, x._5)
-  }
-}
-
-abstract class TpBCbO(rows:Seq[FcaSet], attrs:Int, threads:Int, cutOff:Int)
-extends ParallelAlgorithm(rows, attrs, threads, cutOff) with GenericBCbO{
-	def processQueue(value: AnyRef): Unit = {
-		def fn(t:(FcaSet, FcaSet, Int)) = serial.method(t._1, t._2, t._3)
-		val x = value.asInstanceOf[(FcaSet, FcaSet, Int)]
-		if(recDepth <= cutOff)
-			method(x._1, x._2, x._3)
-		else
-			pool.submit(new Runnable(){ def run = fn(x) })
-	}
-	def serial: CbO
-
-  override def run = {
-  	super[GenericBCbO].run
-  	pool.shutdown
-  	pool.awaitTermination(10, TimeUnit.DAYS)
-  }
-}
-
-
-
-abstract class NoQueueBCbO(rows:Seq[FcaSet], attrs:Int, threads:Int, cutOff:Int, tid:Int)
-extends Algorithm(rows, attrs) with GenericBCbO{
-	var counter = 0
-
-	def processQueue(value: AnyRef): Unit = {
-		val x = value.asInstanceOf[(FcaSet, FcaSet, Int)]
-		if(recDepth > cutOff || (recDepth < cutOff && tid == 0))
-			method(x._1, x._2, x._3) // main thread < cutOff or post cutOff
-		else{
-			// round-robin among threads, each remeber their tid
-			if (counter == tid)
-				method(x._1, x._2, x._3)
-			counter += 1
-			if(counter == threads) counter = 0
-		}
-	}
-
-	def fork(tid:Int): NoQueueBCbO // creates concrete descendant type
-
-	override def run = {
-		val A = fullExtent
-		val B = rows.fold(fullIntent)((a,b) => a & b) // full intersection
-		val pool = Executors.newFixedThreadPool(threads)
-		for(t <- 0 until threads)
-			pool.submit(new Runnable(){
-				val algo = fork(t)
-				def run = {
-					algo.method(A, B, 0)
-				}
-			})
-		pool.shutdown
-		pool.awaitTermination(10, TimeUnit.DAYS)
-	}
 }

@@ -35,7 +35,7 @@ class TreeSet(var set:immutable.TreeSet[Int]) extends FcaSet {
 
   override def subsetOf(that: FcaSet, j: Int): Boolean = {
     val thatSet = that.asInstanceOf[TreeSet]
-    set.subsetOf(thatSet.set)
+    set.until(j).subsetOf(thatSet.set.until(j))
   }
 }
 

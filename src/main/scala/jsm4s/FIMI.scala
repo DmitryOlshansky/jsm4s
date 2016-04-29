@@ -41,14 +41,14 @@ class ArrayBitFCbO(rows:Seq[FcaSet], attrs:Int) extends FCbO(rows, attrs)
 	def fork = new ArrayBitFCbO(rows, attrs)
 }
 
-class ArrayBitTpBCbO(rows:Seq[FcaSet], attrs:Int, threads:Int, cutOff:Int)
-extends TpBCbO(rows, attrs, threads, cutOff) with ArrayExt with BitInt{
-	def serial = new ArrayBitCbO(rows, attrs) // note: serial version of algorithm
+class ArrayBitWFBCbO(rows:Seq[FcaSet], attrs:Int, threads:Int, cutOff:Int, tid:Int=0)
+extends WaveFrontBCbO(rows, attrs, threads, cutOff, tid) with ArrayExt with BitInt{
+	def fork(tid:Int) = new ArrayBitWFBCbO(rows, attrs, threads, cutOff, tid)
 }
 
-class ArrayBitNQPBCbO(rows:Seq[FcaSet], attrs:Int, threads:Int, cutOff:Int, tid:Int=0)
-extends NoQueueBCbO(rows, attrs, threads, cutOff, tid) with ArrayExt with BitInt{
-	def fork(tid:Int) = new ArrayBitNQPBCbO(rows, attrs, threads, cutOff, tid)
+class ArrayBitWFFCbO(rows:Seq[FcaSet], attrs:Int, threads:Int, cutOff:Int, tid:Int=0)
+extends WaveFrontFCbO(rows, attrs, threads, cutOff, tid) with ArrayExt with BitInt{
+	def fork(tid:Int) = new ArrayBitWFFCbO(rows, attrs, threads, cutOff, tid)
 }
 
 object FIMI{
@@ -57,8 +57,8 @@ object FIMI{
 		name match {
 			case "cbo" => new ArrayBitCbO(rows, attrs)
 			case "fcbo" => new ArrayBitFCbO(rows, attrs)
-			case "tp-bcbo" => new ArrayBitTpBCbO(rows, attrs, Runtime.getRuntime().availableProcessors(), 1)
-			case "nqp-bcbo" => new ArrayBitNQPBCbO(rows, attrs, Runtime.getRuntime().availableProcessors(), 1)
+			case "wf-bcbo" => new ArrayBitWFBCbO(rows, attrs, Runtime.getRuntime().availableProcessors(), 1)
+			case "wf-fcbo" => new ArrayBitWFFCbO(rows, attrs, Runtime.getRuntime().availableProcessors(), 1)
 			case _ => throw new Exception(s"No algorithm ${name} is supported")
 		}
 	}

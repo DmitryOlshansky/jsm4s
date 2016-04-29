@@ -72,12 +72,12 @@ class BitSet(val table: Array[Long], val length:Int) extends FcaSet with Seriali
     val bitset = that.asInstanceOf[BitSet]
     val rem = j % 64
     for(i <- 0 until j/64) {
-      if((table(i) & bitset.table(i)) != bitset.table(i)) return false
+      if((table(i) & bitset.table(i)) != table(i)) return false
     }
     if(rem > 0){
       val mask =  (1L<<rem)-1
-      val r = table(table.length-1) & mask & bitset.table(bitset.table.length-1)
-      if(r != (table(table.length-1) & mask)) return false
+      val r = table(j/64) & mask & bitset.table(j/64)
+      if(r != (table(j/64) & mask)) return false
     }
     true
   }
