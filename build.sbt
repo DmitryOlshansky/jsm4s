@@ -4,7 +4,7 @@ organization := "olshansky.me"
 
 version      := "0.2.0"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.11.11"
 
 scalacOptions := Seq("-unchecked", "-feature", "-deprecation", "-encoding", "utf8")
 

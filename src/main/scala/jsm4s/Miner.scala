@@ -32,9 +32,7 @@ object Miner extends LazyLogging{
 				val output = if(out != "") new FileOutputStream(out) else System.out
 				val sets = if (in != "") FIMI.load(new FileInputStream(in)) else FIMI.load(System.in)
 
-				val jsm = FIMI.algorithm(algo, sets)
-				jsm.minSupport = minSupp
-				jsm.sortAttributes = sort
+				val jsm = FIMI.algorithm(algo, sets._1, sets._2)
 				jsm.out = output
 				jsm.run()
 				val after = System.nanoTime()

@@ -4,6 +4,34 @@ import java.util.concurrent.{Executors, TimeUnit}
 
 import scala.collection.{Seq, mutable}
 
+abstract class CbO(rows:Seq[FcaSet], attrs:Int)
+  extends Algorithm(rows, attrs) {
+
+  def method(A:FcaSet, B:FcaSet, y:Int):Unit = {
+    output(A,B)
+    var j = y
+    while(j < attributes) {
+      if(!B.contains(j)){
+        val ret = closeConcept(A, j)
+        if(ret._1){
+          val C = ret._2
+          val D = ret._3
+          if (B.until(j) == D.until(j)) method(C, D, j+1)
+          else onCanonicalTestFailure()
+        }
+      }
+      j += 1
+    }
+  }
+
+  def run = {
+    val A = fullExtent
+    val B = rows.fold(fullIntent)((a,b) => a & b) // full intersection
+    method(A, B, 0)
+    flush()
+  }
+}
+
 
 trait GenericBCbO extends GenericAlgorithm{
 
