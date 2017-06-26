@@ -37,6 +37,7 @@ object Miner extends LazyLogging{
 				jsm.run()
 				val after = System.nanoTime()
 				val delta = (after - before)/1e9
+				jsm.printStats()
 				logger.info(f"Time: ${delta}%.5f sec")
 			case None =>
 

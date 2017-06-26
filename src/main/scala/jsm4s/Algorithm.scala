@@ -1,7 +1,9 @@
 package jsm4s
 
 import java.io.{ByteArrayOutputStream, OutputStream}
-import java.util.concurrent.{Executors, ExecutorService, TimeUnit}
+import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
+
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection._
 
@@ -76,9 +78,15 @@ trait IntentFactory{
 	def newIntent(x: Iterable[Int]):FcaSet
 }
 
-trait StatsCollector {
-	def onClosure():Unit = {}
-	def onCanonicalTestFailure():Unit = {}
+trait StatsCollector extends LazyLogging {
+	var closures = 0
+	var canonicalTests = 0
+	def onClosure():Unit = closures += 1
+	def onCanonicalTestFailure():Unit = canonicalTests +=1
+	def printStats():Unit = {
+		logger.info(s"Closures $closures")
+		logger.info(s"Canonical tests $canonicalTests\n")
+	}
 }
 
 abstract class Algorithm (

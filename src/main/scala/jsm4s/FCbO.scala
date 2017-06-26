@@ -22,6 +22,7 @@ abstract class GenericFCbO(
       if (!B.contains(j)) {
         if (errors(N + j).subsetOf(B, j)) {
           val ret = closeConcept(A, j)
+          onClosure()
           if (ret._1) {
             val C = ret._2
             val D = ret._3
