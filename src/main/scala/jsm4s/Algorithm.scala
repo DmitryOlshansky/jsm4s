@@ -13,6 +13,9 @@ trait FcaSet extends Iterable[Int]{
 	def until(j:Int):FcaSet
 	def dup:FcaSet
 	def ==(that:FcaSet):Boolean
+	def equalWithMask(that: FcaSet, mask:FcaSet):Boolean = {
+		(this & mask) == (that & mask)
+	}
   def subsetOf(that:FcaSet, j:Int):Boolean
 }
 

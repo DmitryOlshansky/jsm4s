@@ -59,7 +59,7 @@ abstract class DynSortCbO(rows:Seq[FcaSet], attrs:Int)
         if (ret._1) {
           val C = ret._2
           val D = ret._3
-          if ((B & visited) == (D & visited)) {
+          if (B.equalWithMask(D, visited)) {
             visited += y
             method(C, D, visited.dup, shuffled.slice(j+1, shuffled.length))
           }

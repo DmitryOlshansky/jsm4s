@@ -72,6 +72,17 @@ class BitSet(val table: Array[Long], val length:Int) extends FcaSet with Seriali
     true
   }
 
+  override def equalWithMask(that: FcaSet, mask: FcaSet): Boolean = {
+    val bitset = that.asInstanceOf[BitSet]
+    val bitmask = mask.asInstanceOf[BitSet]
+    var i = 0
+    while(i < table.size) {
+      if ((table(i) & bitmask.table(i)) != (bitset.table(i) & bitmask.table(i))) return false
+      i += 1
+    }
+    true
+  }
+
   override def subsetOf(that: FcaSet, j: Int): Boolean = {
     val bitset = that.asInstanceOf[BitSet]
     val rem = j % 64
