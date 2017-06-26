@@ -1,7 +1,7 @@
 package jsm4s
 import java.util.Arrays
 
-class SortedArray(var table:Array[Int], var tsize:Int) extends FcaSet with Serializable{
+class SortedArray(var table:Array[Int], var tsize:Int) extends FcaSet with Iterable[Int] {
 
   override def contains(elem: Int): Boolean = {
     Arrays.binarySearch(table, 0, tsize, elem) >= 0
@@ -15,6 +15,14 @@ class SortedArray(var table:Array[Int], var tsize:Int) extends FcaSet with Seria
       val item = table(i)
       i += 1
       item
+    }
+  }
+
+  override def foreach[U](f: (Int) => U): Unit = {
+    var i = 0
+    while(i < table.length) {
+      f(table(i))
+      i += 1
     }
   }
 

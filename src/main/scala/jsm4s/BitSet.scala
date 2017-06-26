@@ -27,9 +27,10 @@ class BitSet(val table: Array[Long], val length:Int) extends FcaSet with Seriali
   override def &(set: FcaSet): FcaSet = {
     val bitset = set.asInstanceOf[BitSet]
     val result = Array.ofDim[Long](table.length)
-    var j = 0
-    for(i <- 0 until table.length) {
+    var i = 0
+    while(i < table.size) {
       result(i) = table(i) & bitset.table(i)
+      i += 1
     }
     new BitSet(result, length)
   }
@@ -63,8 +64,11 @@ class BitSet(val table: Array[Long], val length:Int) extends FcaSet with Seriali
 
   override def ==(set: FcaSet): Boolean = {
     val bitset = set.asInstanceOf[BitSet]
-    for(i <- 0 until table.size)
-      if(table(i) != bitset.table(i)) return false
+    var i = 0
+    while(i < table.size) {
+      if (table(i) != bitset.table(i)) return false
+      i += 1
+    }
     true
   }
 

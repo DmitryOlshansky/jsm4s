@@ -38,6 +38,11 @@ with ArrayExt with BitInt with SortingPreprocessor{
 	def fork = new ArrayBitCbO(rows, attrs)
 }
 
+class ArrayBitDynSortCbO(rows:Seq[FcaSet], attrs:Int) extends DynSortCbO(rows, attrs)
+	with ArrayExt with BitInt with IdentityPreprocessor{
+	def fork = new ArrayBitDynSortCbO(rows, attrs)
+}
+
 class ArrayBitFCbO(rows:Seq[FcaSet], attrs:Int) extends FCbO(rows, attrs)
 	with ArrayExt with BitInt  with SortingPreprocessor{
 	def fork = new ArrayBitFCbO(rows, attrs)
@@ -58,6 +63,7 @@ object FIMI{
 		name match {
 			case "cbo" => new ArrayBitCbO(rows, attrs)
 			case "fcbo" => new ArrayBitFCbO(rows, attrs)
+			case "dynsort-cbo" => new ArrayBitDynSortCbO(rows, attrs)
 			case "wf-bcbo" => new ArrayBitWFBCbO(rows, attrs, Runtime.getRuntime().availableProcessors(), 1)
 			case "wf-fcbo" => new ArrayBitWFFCbO(rows, attrs, Runtime.getRuntime().availableProcessors(), 1)
 			case _ => throw new Exception(s"No algorithm ${name} is supported")

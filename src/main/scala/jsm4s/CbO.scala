@@ -13,6 +13,7 @@ abstract class CbO(rows:Seq[FcaSet], attrs:Int)
     while(j < attributes) {
       if(!B.contains(j)){
         val ret = closeConcept(A, j)
+        onClosure()
         if(ret._1){
           val C = ret._2
           val D = ret._3
@@ -32,6 +33,51 @@ abstract class CbO(rows:Seq[FcaSet], attrs:Int)
   }
 }
 
+abstract class DynSortCbO(rows:Seq[FcaSet], attrs:Int)
+  extends Algorithm(rows, attrs) {
+
+  def weightsOf(set: FcaSet, toVisit: Array[Int]) = {
+    val weights = Array.ofDim[Int](toVisit.length)
+    for (i <- set; j <- 0.until(toVisit.length)) {
+      if (rows(i).contains(toVisit(j)))
+        weights(j) += 1
+    }
+    weights
+  }
+
+  def method(A: FcaSet, B: FcaSet, visited: FcaSet, toVisit: Array[Int]): Unit = {
+    output(A, B)
+
+    val weights = weightsOf(A, toVisit)
+    val shuffled = toVisit.zip(weights).sortWith((x, y) => x._2 < y._2).map(_._1)
+
+    for (j <- 0 until shuffled.length) {
+      val y = shuffled(j)
+      if (!B.contains(y)) {
+        val ret = closeConcept(A, y)
+        onClosure()
+        if (ret._1) {
+          val C = ret._2
+          val D = ret._3
+          if ((B & visited) == (D & visited)) {
+            visited += y
+            method(C, D, visited.dup, shuffled.slice(j+1, shuffled.length))
+          }
+          else onCanonicalTestFailure()
+        }
+      }
+      visited += y
+    }
+  }
+
+  def run = {
+    val A = fullExtent
+    val B = rows.fold(fullIntent)((a, b) => a & b) // full intersection
+    val visited = emptyIntent
+    method(A, B, visited, 0.until(attributes).toArray)
+    flush()
+  }
+}
 
 trait GenericBCbO extends GenericAlgorithm{
 
