@@ -90,7 +90,7 @@ trait StatsCollector extends LazyLogging {
 }
 
 abstract class Algorithm (
-	var rows:Seq[FcaSet], val attributes:Int, val minSupport:Int = 0
+	var rows:Seq[FcaSet], val attributes:Int, val minSupport:Int, val properties:Int
 ) extends Runnable with ExtentFactory with IntentFactory with StatsCollector with Preprocessor{
 
 	rows = this match {
@@ -100,18 +100,34 @@ abstract class Algorithm (
 
 	var out: OutputStream = System.out
 	val buf = new ByteArrayOutputStream()
+
 	// filter on extent-intent pair
-	var filter = (a:FcaSet, b:FcaSet)=>true // always accept hypot
+	def filter(extent:FcaSet, intent:FcaSet) = {
+		if (properties == 0) true
+		else {
+			val attrsOnly = intent.until(attributes - 2*properties)
+			val nullAttr = attrsOnly.isEmpty
+			var hasProperties = false
+			for (i <- attributes - 2*properties until attributes)
+				if (intent.contains(i)) hasProperties = true
+			hasProperties && !nullAttr
+		}
+	}
 
 	def output(extent:FcaSet, intent:FcaSet) = {
 		val postProcessed = this match {
 			case _:IdentityPreprocessor => intent
 			case _ => postProcess(intent)
 		}
-		buf.write(postProcessed.mkString("", " ", "\n").getBytes("UTF-8"))
-		if (buf.size() > 16384) {
-			flush()
+		if (filter(extent, postProcessed)) {
+			buf.write(postProcessed.mkString("", " ", "\n").getBytes("UTF-8"))
+			if (buf.size() > 16384) {
+				flush()
+			}
+			true
 		}
+		else
+			false
 	}
 
 	def flush() = {
@@ -137,10 +153,9 @@ abstract class Algorithm (
 }
 
 abstract class ParallelAlgorithm(
-	rows:Seq[FcaSet], attributes:Int,
-	val threads:Int,
-	val cutOff:Int
-) extends Algorithm(rows, attributes) {
+	rows:Seq[FcaSet], attributes:Int, minSupport:Int, properties:Int,
+	val threads:Int, val cutOff:Int
+) extends Algorithm(rows, attributes, minSupport, properties) {
 	val pool = Executors.newFixedThreadPool(threads)
 }
 

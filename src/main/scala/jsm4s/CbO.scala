@@ -4,11 +4,11 @@ import java.util.concurrent.{Executors, TimeUnit}
 
 import scala.collection.{Seq, mutable}
 
-abstract class CbO(rows:Seq[FcaSet], attrs:Int)
-  extends Algorithm(rows, attrs) {
+abstract class CbO(rows:Seq[FcaSet], attrs:Int, minSupport:Int, properties:Int)
+  extends Algorithm(rows, attrs, minSupport, properties) {
 
   def method(A:FcaSet, B:FcaSet, y:Int):Unit = {
-    output(A,B)
+    if (!output(A,B)) return
     var j = y
     while(j < attributes) {
       if(!B.contains(j)){
@@ -33,8 +33,8 @@ abstract class CbO(rows:Seq[FcaSet], attrs:Int)
   }
 }
 
-abstract class DynSortCbO(rows:Seq[FcaSet], attrs:Int)
-  extends Algorithm(rows, attrs) {
+abstract class DynSortCbO(rows:Seq[FcaSet], attrs:Int, minSupport:Int, properties:Int)
+  extends Algorithm(rows, attrs, minSupport, properties) {
 
   def weightsOf(set: FcaSet, toVisit: Array[Int]) = {
     val weights = Array.ofDim[Int](toVisit.length)
@@ -46,8 +46,7 @@ abstract class DynSortCbO(rows:Seq[FcaSet], attrs:Int)
   }
 
   def method(A: FcaSet, B: FcaSet, visited: FcaSet, toVisit: Array[Int]): Unit = {
-    output(A, B)
-
+    if (!output(A,B)) return
     val weights = weightsOf(A, toVisit)
     val shuffled = toVisit.zip(weights).sortWith((x, y) => x._2 < y._2).map(_._1)
 
@@ -84,8 +83,8 @@ trait GenericBCbO extends GenericAlgorithm{
   var recDepth = 0
 
   def method(A:FcaSet, B:FcaSet, y:Int):Unit = {
+    if (!output(A,B)) return
     val q = mutable.Queue[(FcaSet, FcaSet, Int)]()
-    output(A,B)
     for(j <- y until attributes) {
       if(!B.contains(j)){
         val ret = closeConcept(A, j)
@@ -109,12 +108,13 @@ trait GenericBCbO extends GenericAlgorithm{
   }
 }
 
-abstract class WaveFrontBCbO(rows:Seq[FcaSet], attrs:Int, threads:Int, cutOff:Int, tid:Int)
-  extends Algorithm(rows, attrs) with GenericBCbO{
+abstract class WaveFrontBCbO(rows:Seq[FcaSet], attrs:Int, minSupport:Int, properties:Int, threads:Int, cutOff:Int, tid:Int)
+  extends Algorithm(rows, attrs, minSupport, properties) with GenericBCbO{
   var counter = 0
 
   override def output(extent:FcaSet, intent:FcaSet) =
     if(recDepth >= cutOff || tid == 0) super.output(extent, intent)
+    else filter(extent, postProcess(intent))
 
   def processQueue(value: AnyRef): Unit = {
     val x = value.asInstanceOf[(FcaSet, FcaSet, Int)]
