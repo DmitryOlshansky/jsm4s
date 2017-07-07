@@ -85,7 +85,7 @@ trait StatsCollector extends LazyLogging {
 	def onCanonicalTestFailure():Unit = canonicalTests +=1
 	def printStats():Unit = {
 		logger.info(s"Closures $closures")
-		logger.info(s"Canonical tests $canonicalTests\n")
+		logger.info(s"Canonical test failures $canonicalTests")
 	}
 }
 
