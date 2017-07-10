@@ -85,12 +85,12 @@ object FIMI{
 
     var lastUsed = 0
     for ((k,v) <- uniqueValues){
-      val log2 = 31 - Integer.numberOfLeadingZeros(v.size)
-      val binLength = if (v.size > (1<<log2) || v.size == 1) log2+1 else log2
+      val values = if (v.size > 1) v.size - 1 else 1
       for ((item, i) <- v.zipWithIndex){
-          translation.put((item, k), binEncode(lastUsed, i))
+        if (i != 0) translation.put((item, k), Seq(lastUsed + i))
+        else translation.put((item, k), Seq())
       }
-      lastUsed += binLength
+      lastUsed += values
     }
     for(line <- values) {
       output.write(line.zipWithIndex.map(translation).flatten.mkString(""," ", "\n").getBytes)
