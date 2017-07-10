@@ -2,17 +2,20 @@ package jsm4s
 
 import java.io._
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.{LazyLogging, Logger}
 import org.rogach.scallop.{ScallopConf, Subcommand}
 
 object EncodeCommand extends Subcommand("encode") {
-  val properties = opt[Int](short = 'p', descr = "Number of properties")
+  val properties = opt[List[Int]](short = 'p', descr = "Number of properties")
   val input = trailArg[File](descr = "Input CSV file", required = false)
   val output = trailArg[File](descr = "Output FIMI file", required = false)
 }
 
 object SplitCommand extends Subcommand("split") {
-
+  val ratio = trailArg[String]()
+  val input = trailArg[File]()
+  val first = trailArg[File]()
+  val second = trailArg[File]()
 }
 
 object TauCommand extends Subcommand("tau") {
@@ -48,7 +51,10 @@ class Config(arguments: Seq[String]) extends ScallopConf(arguments) {
 }
 
 object EntryPoint extends LazyLogging{
-	def main(args: Array[String]) = {
+
+  var log = Logger(EntryPoint.getClass)
+
+  def main(args: Array[String]) = {
     val config = new Config(args)
     val before = System.nanoTime()
 		config.subcommand match {
@@ -58,10 +64,9 @@ object EntryPoint extends LazyLogging{
           .getOrElse(System.in)
         val output = e.output.map(f => new FileOutputStream(f).asInstanceOf[OutputStream])
           .getOrElse(System.out)
-        FIMI.encode(input, output)
+        FIMI.encode(input, output, e.properties.getOrElse(List()))
       case Some(GenerateCommand) =>
         val g = GenerateCommand
-
         val output = g.model.map(f => new FileOutputStream(f).asInstanceOf[OutputStream])
           .getOrElse(System.out)
         val sets = g.input.map(f => FIMI.load(new FileInputStream(f)))
@@ -73,6 +78,17 @@ object EntryPoint extends LazyLogging{
         jsm.out = output
         jsm.run()
         jsm.printStats()
+      case Some(SplitCommand) =>
+        val s = SplitCommand
+        val Pattern = "([0-9]+):([0-9]+)".r
+        val Pattern(firstPart, secondPart) = s.ratio.getOrElse(throw new Exception("Ratio is expected in [0-9]+:[0-9]+ form"))
+        (s.input.toOption, s.first.toOption, s.second.toOption) match {
+          case (Some(input), Some(first), Some(second)) =>
+            FIMI.split(input, first, second, firstPart.toInt, secondPart.toInt)
+          case _ =>
+            log.error("Error parsing arguments to split command")
+        }
+
       case _ =>
         println("No command specified")
         System.exit(1)

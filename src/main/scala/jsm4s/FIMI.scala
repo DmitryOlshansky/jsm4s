@@ -1,11 +1,13 @@
 package jsm4s
 
-import java.io.{InputStream, InputStreamReader, OutputStream}
+import java.io._
 import java.util.Scanner
 
 import com.github.tototoshi.csv.CSVReader
 
+import scala.io.Source
 import scala.collection.{immutable, mutable}
+import scala.util.Random
 
 trait BitExt extends ExtentFactory{
 	val emptyExtent = BitSet.empty(objects)
@@ -63,7 +65,7 @@ class ArrayBitWFFCbO(rows:Seq[FcaSet], attrs:Int, minSupport:Int, properties:Int
 }
 
 object FIMI{
-  def encode(input: InputStream, output: OutputStream) = {
+  def encode(input: InputStream, output: OutputStream, properties: List[Int]) = {
     val reader = CSVReader.open(new InputStreamReader(input))
     val uniqueValues = mutable.SortedMap[Int, Set[String]]()
     val values = mutable.Buffer[Seq[String]]()
@@ -78,25 +80,47 @@ object FIMI{
     }
 
     // Translate value from given position to a sequence of binary attributes
-    val translation = mutable.HashMap[(String, Int), Seq[Int]]()
+    val translation = mutable.HashMap[(String, Int), Option[Int]]()
     // check which bits are set in 'i' and output them shifted by 'start'
     def binEncode(start: Int, i: Int) =
       (0 until 32).filter(b => (i & (1<<b)) != 0).map(b => start + b)
 
     var lastUsed = 0
-    for ((k,v) <- uniqueValues){
+    // First map normal attributes that are not properties
+    for ((k,v) <- uniqueValues if !properties.contains(k)){
       val values = if (v.size > 1) v.size - 1 else 1
       for ((item, i) <- v.zipWithIndex){
-        if (i != 0) translation.put((item, k), Seq(lastUsed + i))
-        else translation.put((item, k), Seq())
+        if (i != 0) translation.put((item, k), Some(lastUsed + i))
+        else translation.put((item, k), None)
+      }
+      lastUsed += values
+    }
+    // Now map properties as pairs of attributes
+    for ((k,v) <- uniqueValues if properties.contains(k)) {
+      val values = v.size
+      for ((item, i) <- v.zipWithIndex){
+        translation.put((item, k), Some(lastUsed + i))
       }
       lastUsed += values
     }
     for(line <- values) {
-      output.write(line.zipWithIndex.map(translation).flatten.mkString(""," ", "\n").getBytes)
+      output.write(line.zipWithIndex.map(translation).flatten.sorted.mkString(""," ", "\n").getBytes)
     }
     output.close()
 	}
+
+  def split(input: File, first: File, second: File, firstPart: Int, secondPart: Int) = {
+    val full = firstPart + secondPart
+    val rnd = new Random()
+    val firstWriter = new OutputStreamWriter(new FileOutputStream(first))
+    val secondWriter = new OutputStreamWriter(new FileOutputStream(second))
+    for(line <- Source.fromFile(input).getLines()) {
+      if (rnd.nextInt(full) < firstPart) firstWriter.write(line + "\n")
+      else secondWriter.write(line + "\n")
+    }
+    firstWriter.close()
+    secondWriter.close()
+  }
 
   def algorithm(name:String, rows:Seq[FcaSet], attrs: Int, minSupport:Int, properties:Int):Algorithm = {
 		name match {
