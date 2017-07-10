@@ -1,7 +1,9 @@
 package jsm4s
 
-import java.io.InputStream
+import java.io.{InputStream, InputStreamReader, OutputStream}
 import java.util.Scanner
+
+import com.github.tototoshi.csv.CSVReader
 
 import scala.collection.{immutable, mutable}
 
@@ -61,7 +63,42 @@ class ArrayBitWFFCbO(rows:Seq[FcaSet], attrs:Int, minSupport:Int, properties:Int
 }
 
 object FIMI{
-	def algorithm(name:String, rows:Seq[FcaSet], attrs: Int, minSupport:Int, properties:Int):Algorithm = {
+  def encode(input: InputStream, output: OutputStream) = {
+    val reader = CSVReader.open(new InputStreamReader(input))
+    val uniqueValues = mutable.SortedMap[Int, Set[String]]()
+    val values = mutable.Buffer[Seq[String]]()
+    for(line <- reader) {
+      values += line
+      line.zipWithIndex.foreach(x =>
+        uniqueValues.get(x._2) match {
+          case Some(set) => uniqueValues.put(x._2, set +  x._1)
+          case None => uniqueValues.put(x._2, Set[String](x._1))
+        }
+      )
+    }
+
+    // Translate value from given position to a sequence of binary attributes
+    val translation = mutable.HashMap[(String, Int), Seq[Int]]()
+    // check which bits are set in 'i' and output them shifted by 'start'
+    def binEncode(start: Int, i: Int) =
+      (0 until 32).filter(b => (i & (1<<b)) != 0).map(b => start + b)
+
+    var lastUsed = 0
+    for ((k,v) <- uniqueValues){
+      val log2 = 31 - Integer.numberOfLeadingZeros(v.size)
+      val binLength = if (v.size > (1<<log2) || v.size == 1) log2+1 else log2
+      for ((item, i) <- v.zipWithIndex){
+          translation.put((item, k), binEncode(lastUsed, i))
+      }
+      lastUsed += binLength
+    }
+    for(line <- values) {
+      output.write(line.zipWithIndex.map(translation).flatten.mkString(""," ", "\n").getBytes)
+    }
+    output.close()
+	}
+
+  def algorithm(name:String, rows:Seq[FcaSet], attrs: Int, minSupport:Int, properties:Int):Algorithm = {
 		name match {
 			case "cbo" => new ArrayBitCbO(rows, attrs)
 			case "fcbo" => new ArrayBitFCbO(rows, attrs)

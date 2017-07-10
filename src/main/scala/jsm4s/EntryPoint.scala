@@ -1,12 +1,14 @@
 package jsm4s
 
-import java.io.{File, FileInputStream, FileOutputStream, OutputStream}
+import java.io._
 
 import com.typesafe.scalalogging.LazyLogging
 import org.rogach.scallop.{ScallopConf, Subcommand}
 
 object EncodeCommand extends Subcommand("encode") {
-
+  val properties = opt[Int](short = 'p', descr = "Number of properties")
+  val input = trailArg[File](descr = "Input CSV file", required = false)
+  val output = trailArg[File](descr = "Output FIMI file", required = false)
 }
 
 object SplitCommand extends Subcommand("split") {
@@ -30,8 +32,8 @@ object GenerateCommand extends Subcommand("generate") {
 }
 
 object JsmCommand extends Subcommand("jsm") {
-  val algorithm = GenerateCommand.algorithm
-  val properties = GenerateCommand.properties
+  val algorithm = opt[String](default = Some("fcbo"), short = 'a', descr = "One of: cbo, fcbo, dynsort-cbo, wf-cbo, wf-fcbo")
+  val properties = opt[Int](short = 'p', descr = "Number of properties")
   val input = trailArg[File]()
 }
 
@@ -48,11 +50,17 @@ class Config(arguments: Seq[String]) extends ScallopConf(arguments) {
 object EntryPoint extends LazyLogging{
 	def main(args: Array[String]) = {
     val config = new Config(args)
-
+    val before = System.nanoTime()
 		config.subcommand match {
+      case Some(EncodeCommand) =>
+        val e = EncodeCommand
+        val input = e.input.map(f => new FileInputStream(f).asInstanceOf[InputStream])
+          .getOrElse(System.in)
+        val output = e.output.map(f => new FileOutputStream(f).asInstanceOf[OutputStream])
+          .getOrElse(System.out)
+        FIMI.encode(input, output)
       case Some(GenerateCommand) =>
         val g = GenerateCommand
-        val before = System.nanoTime()
 
         val output = g.model.map(f => new FileOutputStream(f).asInstanceOf[OutputStream])
           .getOrElse(System.out)
@@ -64,11 +72,13 @@ object EntryPoint extends LazyLogging{
         )
         jsm.out = output
         jsm.run()
-        val after = System.nanoTime()
-        val delta = (after - before)/1e9
         jsm.printStats()
-        logger.info(f"Time: ${delta}%.5f sec")
-      case _ => println("No command specified")
+      case _ =>
+        println("No command specified")
+        System.exit(1)
     }
+    val after = System.nanoTime()
+    val delta = (after - before)/1e9
+    logger.info(f"Time: ${delta}%.5f sec")
 	}
 }
