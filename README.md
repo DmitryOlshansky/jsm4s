@@ -45,10 +45,8 @@ java -jar jsm4s-0.9.0.jar stats -p1 verify.dat predictions.dat
 
 Which should produce something close to the following:
 ```
-Correct predictions ratio 1560/1607
+Correct predictions ratio 1607/1607
 Unknown ratio 0/1607
-[main] INFO jsm4s.EntryPoint$ - Time: 0.26276 sec
-
+[main] INFO jsm4s.EntryPoint$ - Time: 0.24817 sec
 ```
-
-
+The number of example may vary because split command is using random sampling.

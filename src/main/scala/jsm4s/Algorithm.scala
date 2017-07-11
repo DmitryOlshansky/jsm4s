@@ -113,7 +113,7 @@ abstract class Algorithm (
 				if (intent.contains(i)) hasProperties = true
       if (hasProperties && !nullAttr && extent.size >= minSupport) {
         // Filter out by counter examples
-				/*var failures = 0
+				var failures = 0
         for (r <- rows) {
           val example = r.until(attributes - 2 * properties)
           if ((example & attrsOnly) == attrsOnly) {
@@ -121,7 +121,7 @@ abstract class Algorithm (
               if (r.contains(i) ^ intent.contains(i)) failures += 1
           }
           if (failures > 0) return false
-        }*/
+        }
         true
       }
       else
