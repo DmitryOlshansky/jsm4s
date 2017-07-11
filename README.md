@@ -10,7 +10,7 @@ jsm4s strives to provide the most complete and fast implementations of the follo
 
 Potential future goals - add support for Apache Spark and/or better integration with other ML toolkits.
 
-##Examples
+## Examples
 
 A sample ML session against Mushroom data set is as follows.
 First encode the dataset to FIMI format using first attribute (0-based indexing) as target property:
@@ -18,7 +18,7 @@ First encode the dataset to FIMI format using first attribute (0-based indexing)
 java -jar jsm4s-0.9.0.jar encode -p 0 data/mushroom.csv mushroom.dat
 ```
 
-Then split into trainging and validation datasets
+Then split into training and validation datasets
 ```
 java -jar jsm4s-0.9.0.jar split 8:2 mushroom.dat training.dat verify.dat
 ```
@@ -49,4 +49,4 @@ Correct predictions ratio 1607/1607
 Unknown ratio 0/1607
 [main] INFO jsm4s.EntryPoint$ - Time: 0.24817 sec
 ```
-The number of example may vary because split command is using random sampling.
+The number of examples may vary because split command is using random sampling.
