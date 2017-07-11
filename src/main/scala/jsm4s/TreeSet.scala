@@ -2,10 +2,10 @@ package jsm4s
 
 import scala.collection.immutable
 
-class TreeSet(var set:immutable.TreeSet[Int]) extends FcaSet {
+class TreeSet(var set: immutable.TreeSet[Int]) extends FcaSet {
   def this(iterable: Iterable[Int]) = {
     this(immutable.TreeSet[Int]())
-    for(x <- iterable) this += x
+    for (x <- iterable) this += x
   }
 
   override def contains(x: Int): Boolean = set.contains(x)
@@ -41,7 +41,8 @@ class TreeSet(var set:immutable.TreeSet[Int]) extends FcaSet {
   override def size = set.size
 }
 
-object TreeSet{
+object TreeSet {
   def empty = new TreeSet(immutable.TreeSet[Int]())
-  def full(size:Int) = new TreeSet(immutable.TreeSet[Int](0 until(size): _*))
+
+  def full(size: Int) = new TreeSet(immutable.TreeSet[Int](0 until (size): _*))
 }

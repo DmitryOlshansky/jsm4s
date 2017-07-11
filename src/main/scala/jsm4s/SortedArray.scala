@@ -1,14 +1,16 @@
 package jsm4s
+
 import java.util.Arrays
 
-class SortedArray(var table:Array[Int], var tsize:Int) extends FcaSet with Iterable[Int] {
+class SortedArray(var table: Array[Int], var tsize: Int) extends FcaSet with Iterable[Int] {
 
   override def contains(elem: Int): Boolean = {
     Arrays.binarySearch(table, 0, tsize, elem) >= 0
   }
 
-  override def iterator: Iterator[Int] = new Iterator[Int]{
+  override def iterator: Iterator[Int] = new Iterator[Int] {
     var i = 0
+
     override def hasNext: Boolean = i != tsize
 
     override def next(): Int = {
@@ -20,7 +22,7 @@ class SortedArray(var table:Array[Int], var tsize:Int) extends FcaSet with Itera
 
   override def foreach[U](f: (Int) => U): Unit = {
     var i = 0
-    while(i < tsize) {
+    while (i < tsize) {
       f(table(i))
       i += 1
     }
@@ -39,8 +41,8 @@ class SortedArray(var table:Array[Int], var tsize:Int) extends FcaSet with Itera
 
   override def +=(x: Int): FcaSet = {
 
-    if(table.length == tsize) {
-      val newSize = if(table.length == 0) 4 else table.length*2
+    if (table.length == tsize) {
+      val newSize = if (table.length == 0) 4 else table.length * 2
       table = Arrays.copyOf(table, newSize)
     }
     table(tsize) = x
@@ -50,19 +52,19 @@ class SortedArray(var table:Array[Int], var tsize:Int) extends FcaSet with Itera
 
   override def dup: FcaSet = new SortedArray(Arrays.copyOf(table, table.length), tsize)
 
-  def ==(that:FcaSet):Boolean = {
+  def ==(that: FcaSet): Boolean = {
     val target = that.asInstanceOf[SortedArray]
-    for(i <- 0 until math.min(tsize, target.tsize)){
-      if(table(i) != target.table(i)) return false
+    for (i <- 0 until math.min(tsize, target.tsize)) {
+      if (table(i) != target.table(i)) return false
     }
     true
   }
 
   override def subsetOf(that: FcaSet, j: Int): Boolean = ???
 
-  override def size:Int = tsize
+  override def size: Int = tsize
 }
 
-object SortedArray{
+object SortedArray {
   val empty = new SortedArray(Array[Int](), 0)
 }

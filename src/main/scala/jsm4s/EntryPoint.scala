@@ -63,14 +63,14 @@ class Config(arguments: Seq[String]) extends ScallopConf(arguments) {
   verify()
 }
 
-object EntryPoint extends LazyLogging{
+object EntryPoint extends LazyLogging {
 
   var log = Logger(EntryPoint.getClass)
 
   def main(args: Array[String]) = {
     val config = new Config(args)
     val before = System.nanoTime()
-		config.subcommand match {
+    config.subcommand match {
       case Some(EncodeCommand) =>
         val e = EncodeCommand
         val input = e.input.map(f => new FileInputStream(f).asInstanceOf[InputStream])
@@ -128,7 +128,7 @@ object EntryPoint extends LazyLogging{
         System.exit(1)
     }
     val after = System.nanoTime()
-    val delta = (after - before)/1e9
+    val delta = (after - before) / 1e9
     logger.info(f"Time: ${delta}%.5f sec")
-	}
+  }
 }
