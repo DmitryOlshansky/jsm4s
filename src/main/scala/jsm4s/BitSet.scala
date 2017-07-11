@@ -96,6 +96,8 @@ class BitSet(val table: Array[Long], val length:Int) extends FcaSet with Seriali
     }
     true
   }
+
+  override def size = length
 }
 
 object BitSet{

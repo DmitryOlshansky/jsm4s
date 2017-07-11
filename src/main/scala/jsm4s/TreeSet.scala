@@ -37,6 +37,8 @@ class TreeSet(var set:immutable.TreeSet[Int]) extends FcaSet {
     val thatSet = that.asInstanceOf[TreeSet]
     set.until(j).subsetOf(thatSet.set.until(j))
   }
+
+  override def size = set.size
 }
 
 object TreeSet{

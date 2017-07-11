@@ -5,6 +5,7 @@ import java.util.Scanner
 
 import com.github.tototoshi.csv.CSVReader
 
+import scala.collection.immutable.SortedSet
 import scala.io.Source
 import scala.collection.{immutable, mutable}
 import scala.util.Random
@@ -38,33 +39,34 @@ trait TreeInt extends IntentFactory {
 }
 
 class ArrayBitCbO(rows:Seq[FcaSet], attrs:Int, minSupport:Int = 0, properties:Int = 0)
-	extends CbO(rows, attrs, 0, properties) with ArrayExt with BitInt with SortingPreprocessor{
-	def fork = new ArrayBitCbO(rows, attrs, properties)
+	extends CbO(rows, attrs, minSupport, properties) with ArrayExt with BitInt with IdentityPreprocessor{
+	def fork = new ArrayBitCbO(rows, attrs, minSupport, properties)
 }
 
 class ArrayBitDynSortCbO(rows:Seq[FcaSet], attrs:Int, minSupport:Int = 0, properties:Int = 0)
 	extends DynSortCbO(rows, attrs, minSupport, properties) with ArrayExt with BitInt with IdentityPreprocessor{
-	def fork = new ArrayBitDynSortCbO(rows, attrs)
+	def fork = new ArrayBitDynSortCbO(rows, attrs, minSupport, properties)
 }
 
 class ArrayBitFCbO(rows:Seq[FcaSet], attrs:Int, minSupport:Int = 0, properties:Int = 0)
-	extends FCbO(rows, attrs, minSupport, properties) with ArrayExt with BitInt  with SortingPreprocessor{
-	def fork = new ArrayBitFCbO(rows, attrs)
+	extends FCbO(rows, attrs, minSupport, properties) with ArrayExt with BitInt  with IdentityPreprocessor{
+	def fork = new ArrayBitFCbO(rows, attrs, minSupport, properties)
 }
 
 class ArrayBitWFBCbO(rows:Seq[FcaSet], attrs:Int, minSupport:Int, properties:Int, threads:Int, cutOff:Int, tid:Int=0)
-	extends WaveFrontBCbO(rows, attrs, threads, minSupport, properties, cutOff, tid)
-	with ArrayExt with BitInt  with SortingPreprocessor{
+	extends WaveFrontBCbO(rows, attrs, minSupport, properties, threads, cutOff, tid)
+	with ArrayExt with BitInt  with IdentityPreprocessor{
 	def fork(tid:Int) = new ArrayBitWFBCbO(rows, attrs, minSupport, properties, threads, cutOff, tid)
 }
 
 class ArrayBitWFFCbO(rows:Seq[FcaSet], attrs:Int, minSupport:Int, properties:Int, threads:Int, cutOff:Int, tid:Int=0)
 	extends WaveFrontFCbO(rows, attrs, minSupport, properties, threads, cutOff, tid)
-	with ArrayExt with BitInt with SortingPreprocessor{
+	with ArrayExt with BitInt with IdentityPreprocessor{
 	def fork(tid:Int) = new ArrayBitWFFCbO(rows, attrs, minSupport, properties, threads, cutOff, tid)
 }
 
-object FIMI{
+object JSM{
+
   def encode(input: InputStream, output: OutputStream, properties: List[Int]) = {
     val reader = CSVReader.open(new InputStreamReader(input))
     val uniqueValues = mutable.SortedMap[Int, Set[String]]()
@@ -81,27 +83,23 @@ object FIMI{
 
     // Translate value from given position to a sequence of binary attributes
     val translation = mutable.HashMap[(String, Int), Option[Int]]()
-    // check which bits are set in 'i' and output them shifted by 'start'
-    def binEncode(start: Int, i: Int) =
-      (0 until 32).filter(b => (i & (1<<b)) != 0).map(b => start + b)
 
     var lastUsed = 0
     // First map normal attributes that are not properties
     for ((k,v) <- uniqueValues if !properties.contains(k)){
-      val values = if (v.size > 1) v.size - 1 else 1
+      val len = if (v.size > 1) v.size - 1 else 1
       for ((item, i) <- v.zipWithIndex){
-        if (i != 0) translation.put((item, k), Some(lastUsed + i))
+        if (i != 0) translation.put((item, k), Some(lastUsed + i - 1))
         else translation.put((item, k), None)
       }
-      lastUsed += values
+      lastUsed += len
     }
     // Now map properties as pairs of attributes
     for ((k,v) <- uniqueValues if properties.contains(k)) {
-      val values = v.size
       for ((item, i) <- v.zipWithIndex){
         translation.put((item, k), Some(lastUsed + i))
       }
-      lastUsed += values
+      lastUsed += v.size
     }
     for(line <- values) {
       output.write(line.zipWithIndex.map(translation).flatten.sorted.mkString(""," ", "\n").getBytes)
@@ -122,16 +120,84 @@ object FIMI{
     secondWriter.close()
   }
 
-  def algorithm(name:String, rows:Seq[FcaSet], attrs: Int, minSupport:Int, properties:Int):Algorithm = {
+  // Only binary properties for now
+  def tau(input: File, output: File, properties: Int) = {
+    val rows = Source.fromFile(input).getLines().map(x => x.split(" ").map(_.toInt).toSet).toBuffer
+    val attrs = rows.map(x => x.max).max + 1
+    val normalAttrs = attrs - 2 * properties
+    val writer = new OutputStreamWriter(new FileOutputStream(output))
+    for (r <- rows) {
+      val tau = r ++ (normalAttrs until attrs) // tau is all ones in properties
+      writer.write(tau.toArray.sorted.mkString("", " ", "\n"))
+    }
+    writer.close()
+  }
+
+  // Only binary attributes for now
+  def recognize(model: File, tau: File, output: File, properties: Int, debug: Boolean) = {
+    val hypotheses = load(new FileInputStream(model))
+    val examples = load(new FileInputStream(tau))
+    val out = new OutputStreamWriter(new FileOutputStream(output))
+    val attrs = Math.max(hypotheses._2, examples._2)
+    val normalAttrs = attrs - properties*2
+    for (e <- examples._1) {
+      val votesInFavor = Array.ofDim[Int](properties)
+      val votesAgainst = Array.ofDim[Int](properties)
+      val matching = hypotheses._1.filter(p => (p.until(normalAttrs) & e) == p.until(normalAttrs))
+      if (debug) {
+        println(e.mkString("Example:"," ", ""))
+      }
+      for (h <- matching){
+        if (debug){
+          val support = examples._1.count{ e => (e & h) == h }
+          println(support.toString + h.mkString(">>"," ", ""))
+        }
+        for (i <- 0 until properties) {
+          if (h.contains(normalAttrs + 2 * i)) votesAgainst(i) += 1
+          else if (h.contains(normalAttrs + 2 * i + 1)) votesInFavor(i) += 1
+        }
+      }
+      val e2 = e.until(normalAttrs)
+      for (i <- 0 until properties) {
+        if (votesInFavor(i) > votesAgainst(i))
+          e2 += normalAttrs + 2 * i + 1
+        else if (votesInFavor(i) < votesAgainst(i))
+          e2 += normalAttrs + 2 * i
+        else if (votesAgainst(i) > 0 && votesAgainst(i) > 0) {
+          e2 += normalAttrs + 2 * i
+          e2 += normalAttrs + 2 * i + 1
+        }
+      }
+      out.write(e2.mkString("", " ", "\n"))
+    }
+    out.close()
+  }
+
+  def generate(name:String, rows:Seq[FcaSet], attrs: Int, minSupport:Int, properties:Int):Algorithm = {
 		name match {
-			case "cbo" => new ArrayBitCbO(rows, attrs)
-			case "fcbo" => new ArrayBitFCbO(rows, attrs)
-			case "dynsort-cbo" => new ArrayBitDynSortCbO(rows, attrs)
-			case "wf-bcbo" => new ArrayBitWFBCbO(rows, attrs, minSupport, properties, Runtime.getRuntime().availableProcessors(), 1)
-			case "wf-fcbo" => new ArrayBitWFFCbO(rows, attrs, minSupport, properties, Runtime.getRuntime().availableProcessors(), 1)
+			case "cbo" => new ArrayBitCbO(rows, attrs, minSupport, properties)
+			case "fcbo" => new ArrayBitFCbO(rows, attrs, minSupport, properties)
+			case "dynsort-cbo" => new ArrayBitDynSortCbO(rows, attrs, minSupport, properties)
+			case "wf-bcbo" =>
+        new ArrayBitWFBCbO(rows, attrs, minSupport, properties, Runtime.getRuntime().availableProcessors(), 1)
+			case "wf-fcbo" =>
+        new ArrayBitWFFCbO(rows, attrs, minSupport, properties, Runtime.getRuntime().availableProcessors(), 1)
 			case _ => throw new Exception(s"No algorithm ${name} is supported")
 		}
 	}
+
+  def stats(validation: File, prediction: File, properties: Int) = {
+    val validRows = load(new FileInputStream(validation))
+    val predictedRows = load(new FileInputStream(prediction))
+    val attrs = validRows._2
+    val pairs = validRows._1.zip(predictedRows._1)
+    val correct = pairs.count{ case (a, b) => a == b }
+    var unknown = pairs.count { case (a, b) =>
+      !(attrs - 2 * properties until attrs).map { i => b.contains(i) }.fold(false)((a, x) => a || x)
+    }
+    println(s"Correct predictions ratio $correct/${pairs.size}")
+    println(s"Unknown ratio $unknown/${pairs.size}")
+  }
 
 	def load(in: InputStream):(Seq[FcaSet], Int) = {
 		val scanner = new Scanner(in)

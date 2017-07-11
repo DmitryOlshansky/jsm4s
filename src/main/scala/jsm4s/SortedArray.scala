@@ -20,7 +20,7 @@ class SortedArray(var table:Array[Int], var tsize:Int) extends FcaSet with Itera
 
   override def foreach[U](f: (Int) => U): Unit = {
     var i = 0
-    while(i < table.length) {
+    while(i < tsize) {
       f(table(i))
       i += 1
     }
@@ -59,6 +59,8 @@ class SortedArray(var table:Array[Int], var tsize:Int) extends FcaSet with Itera
   }
 
   override def subsetOf(that: FcaSet, j: Int): Boolean = ???
+
+  override def size:Int = tsize
 }
 
 object SortedArray{

@@ -19,6 +19,7 @@ trait FcaSet extends Iterable[Int]{
 		(this & mask) == (that & mask)
 	}
   def subsetOf(that:FcaSet, j:Int):Boolean
+  def size: Int
 }
 
 trait Preprocessor {
@@ -102,7 +103,7 @@ abstract class Algorithm (
 	val buf = new ByteArrayOutputStream()
 
 	// filter on extent-intent pair
-	def filter(extent:FcaSet, intent:FcaSet) = {
+	def filter(extent:FcaSet, intent:FcaSet): Boolean = {
 		if (properties == 0) true
 		else {
 			val attrsOnly = intent.until(attributes - 2*properties)
@@ -110,7 +111,22 @@ abstract class Algorithm (
 			var hasProperties = false
 			for (i <- attributes - 2*properties until attributes)
 				if (intent.contains(i)) hasProperties = true
-			hasProperties && !nullAttr
+      if (hasProperties && !nullAttr && extent.size >= minSupport) {
+        // Filter out by counter examples
+				/*var failures = 0
+        for (r <- rows) {
+          val example = r.until(attributes - 2 * properties)
+          if ((example & attrsOnly) == attrsOnly) {
+            for (i <- attributes - 2 * properties until attributes)
+              if (r.contains(i) ^ intent.contains(i)) failures += 1
+          }
+          if (failures > 0) return false
+        }*/
+        true
+      }
+      else
+        false
+
 		}
 	}
 
@@ -124,10 +140,8 @@ abstract class Algorithm (
 			if (buf.size() > 16384) {
 				flush()
 			}
-			true
 		}
-		else
-			false
+		true
 	}
 
 	def flush() = {

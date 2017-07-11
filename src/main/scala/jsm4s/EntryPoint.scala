@@ -19,11 +19,17 @@ object SplitCommand extends Subcommand("split") {
 }
 
 object TauCommand extends Subcommand("tau") {
-
+  val properties = opt[Int](short = 'p', descr = "Number of properties")
+  val input = trailArg[File]()
+  val output = trailArg[File]()
 }
 
 object RecognizeCommand extends Subcommand("recognize") {
-
+  val properties = opt[Int](short = 'p', descr = "Number of properties")
+  val model = opt[File](short = 'm', descr = "File with model that contains hypotheses")
+  val output = opt[File](short = 'o', descr = "Output file with predictions")
+  val debug = opt[Boolean](short = 'd', descr = "Debug mode - output hypotheses for each example")
+  val tau = trailArg[File](descr = "File with Tau examples to predict")
 }
 
 object GenerateCommand extends Subcommand("generate") {
@@ -40,6 +46,12 @@ object JsmCommand extends Subcommand("jsm") {
   val input = trailArg[File]()
 }
 
+object StatsCommand extends Subcommand("stats") {
+  val properties = opt[Int](short = 'p', descr = "Number of properties")
+  val validation = trailArg[File]()
+  val prediction = trailArg[File]()
+}
+
 class Config(arguments: Seq[String]) extends ScallopConf(arguments) {
   addSubcommand(EncodeCommand)
   addSubcommand(SplitCommand)
@@ -47,6 +59,7 @@ class Config(arguments: Seq[String]) extends ScallopConf(arguments) {
   addSubcommand(GenerateCommand)
   addSubcommand(RecognizeCommand)
   addSubcommand(JsmCommand)
+  addSubcommand(StatsCommand)
   verify()
 }
 
@@ -64,16 +77,16 @@ object EntryPoint extends LazyLogging{
           .getOrElse(System.in)
         val output = e.output.map(f => new FileOutputStream(f).asInstanceOf[OutputStream])
           .getOrElse(System.out)
-        FIMI.encode(input, output, e.properties.getOrElse(List()))
+        JSM.encode(input, output, e.properties.getOrElse(List()))
       case Some(GenerateCommand) =>
         val g = GenerateCommand
         val output = g.model.map(f => new FileOutputStream(f).asInstanceOf[OutputStream])
           .getOrElse(System.out)
-        val sets = g.input.map(f => FIMI.load(new FileInputStream(f)))
-          .getOrElse(FIMI.load(System.in))
-        val jsm = FIMI.algorithm(
+        val sets = g.input.map(f => JSM.load(new FileInputStream(f)))
+          .getOrElse(JSM.load(System.in))
+        val jsm = JSM.generate(
           g.algorithm.getOrElse("fcbo"), sets._1, sets._2,
-          g.minSupport.getOrElse(0), g.properties.getOrElse(0)
+          g.minSupport.getOrElse(2), g.properties.getOrElse(0)
         )
         jsm.out = output
         jsm.run()
@@ -84,11 +97,32 @@ object EntryPoint extends LazyLogging{
         val Pattern(firstPart, secondPart) = s.ratio.getOrElse(throw new Exception("Ratio is expected in [0-9]+:[0-9]+ form"))
         (s.input.toOption, s.first.toOption, s.second.toOption) match {
           case (Some(input), Some(first), Some(second)) =>
-            FIMI.split(input, first, second, firstPart.toInt, secondPart.toInt)
+            JSM.split(input, first, second, firstPart.toInt, secondPart.toInt)
           case _ =>
-            log.error("Error parsing arguments to split command")
+            log.error("Too few arguments to split command")
         }
-
+      case Some(TauCommand) =>
+        val t = TauCommand
+        (t.input.toOption, t.output.toOption) match {
+          case (Some(input), Some(output)) => JSM.tau(input, output, t.properties.getOrElse(0))
+          case _ => log.error("Too few arguments to tau command")
+        }
+      case Some(RecognizeCommand) =>
+        val r = RecognizeCommand
+        (r.model.toOption, r.tau.toOption, r.output.toOption, r.properties.toOption) match {
+          case (Some(model), Some(tau), Some(output), Some(properties)) =>
+            JSM.recognize(model, tau, output, properties, r.debug.getOrElse(false))
+          case _ =>
+            log.error("Too few arguments to recognize command")
+        }
+      case Some(StatsCommand) =>
+        val s = StatsCommand
+        (s.validation.toOption, s.prediction.toOption, s.properties.toOption) match {
+          case (Some(validation), Some(prediction), Some(properties)) =>
+            JSM.stats(validation, prediction, properties)
+          case _ =>
+            log.error("Too few arguments to stats command")
+        }
       case _ =>
         println("No command specified")
         System.exit(1)
