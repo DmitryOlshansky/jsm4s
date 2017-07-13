@@ -1,6 +1,7 @@
 package jsm4s
 
 import org.scalatest._
+import jsm4s.ds.BitSet
 
 class TestBitSet extends FlatSpec with Matchers {
   "Bit set" should "work like integer set" in {

@@ -1,4 +1,4 @@
-package jsm4s
+package jsm4s.ds
 
 import java.util.Arrays
 
@@ -114,4 +114,18 @@ object BitSet {
       arr(arr.length - 1) &= (mask - 1)
     new BitSet(arr, size)
   }
+}
+
+trait BitExt extends ExtentFactory {
+  val emptyExtent = BitSet.empty(objects)
+  val fullExtent = BitSet.full(objects)
+
+  override def newExtent(seq: Iterable[Int]) = new BitSet(seq, objects)
+}
+
+trait BitInt extends IntentFactory {
+  val emptyIntent = BitSet.empty(attributes)
+  val fullIntent = BitSet.full(attributes)
+
+  override def newIntent(seq: Iterable[Int]) = new BitSet(seq, attributes)
 }

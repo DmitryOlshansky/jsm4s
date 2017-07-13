@@ -1,4 +1,4 @@
-package jsm4s
+package jsm4s.ds
 
 import scala.collection.immutable
 
@@ -45,4 +45,14 @@ object TreeSet {
   def empty = new TreeSet(immutable.TreeSet[Int]())
 
   def full(size: Int) = new TreeSet(immutable.TreeSet[Int](0 until (size): _*))
+}
+
+trait TreeExt extends ExtentFactory {
+  val emptyExtent = TreeSet.empty
+  val fullExtent = TreeSet.full(objects)
+}
+
+trait TreeInt extends IntentFactory {
+  val emptyIntent = TreeSet.empty
+  val fullIntent = TreeSet.full(attributes)
 }

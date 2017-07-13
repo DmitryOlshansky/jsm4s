@@ -1,34 +1,12 @@
-package jsm4s
+package jsm4s.algorithm
 
 import java.io.{ByteArrayOutputStream, OutputStream}
-import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
+import java.util.concurrent.Executors
 
 import com.typesafe.scalalogging.LazyLogging
+import jsm4s.ds.{ExtentFactory, FcaSet, IntentFactory}
 
 import scala.collection._
-
-/// A minimal integer set for FCA computations
-trait FcaSet extends Iterable[Int] {
-  def contains(x: Int): Boolean
-
-  def +=(x: Int): FcaSet
-
-  def &(set: FcaSet): FcaSet
-
-  def until(j: Int): FcaSet
-
-  def dup: FcaSet
-
-  def ==(that: FcaSet): Boolean
-
-  def equalWithMask(that: FcaSet, mask: FcaSet): Boolean = {
-    (this & mask) == (that & mask)
-  }
-
-  def subsetOf(that: FcaSet, j: Int): Boolean
-
-  def size: Int
-}
 
 trait Preprocessor {
   var rows: Seq[FcaSet]
@@ -74,26 +52,6 @@ trait SortingPreprocessor extends Preprocessor with IntentFactory {
     initialize()
     newIntent(intent.map(order))
   }
-}
-
-trait ExtentFactory {
-  val objects: Int
-
-  def emptyExtent: FcaSet
-
-  def fullExtent: FcaSet
-
-  def newExtent(x: Iterable[Int]): FcaSet
-}
-
-trait IntentFactory {
-  val attributes: Int
-
-  def emptyIntent: FcaSet
-
-  def fullIntent: FcaSet
-
-  def newIntent(x: Iterable[Int]): FcaSet
 }
 
 trait StatsCollector extends LazyLogging {
@@ -178,19 +136,15 @@ abstract class Algorithm(
     (cnt >= minSupport, C, D)
   }
 
+  def perform(): Unit
+
   def run(): Unit = {
     rows = this match {
       case _: IdentityPreprocessor => rows
       case _ => rows.map(x => preProcess(x))
     }
+    perform()
   }
-}
-
-abstract class ParallelAlgorithm(
-                                  rows: Seq[FcaSet], attributes: Int, minSupport: Int, properties: Int,
-                                  val threads: Int, val cutOff: Int
-                                ) extends Algorithm(rows, attributes, minSupport, properties) {
-  val pool = Executors.newFixedThreadPool(threads)
 }
 
 trait GenericAlgorithm extends Algorithm {

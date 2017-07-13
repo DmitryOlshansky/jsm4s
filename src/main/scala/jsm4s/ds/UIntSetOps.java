@@ -1,4 +1,4 @@
-package jsm4s;
+package jsm4s.ds;
 
 public class UIntSetOps {
 

@@ -4,69 +4,22 @@ import java.io._
 import java.util.Scanner
 
 import com.github.tototoshi.csv.CSVReader
+import jsm4s.algorithm._
+import jsm4s.ds._
 
-import scala.collection.immutable.SortedSet
 import scala.io.Source
 import scala.collection.{immutable, mutable}
 import scala.util.Random
 
-trait BitExt extends ExtentFactory {
-  val emptyExtent = BitSet.empty(objects)
-  val fullExtent = BitSet.full(objects)
-
-  override def newExtent(seq: Iterable[Int]) = new BitSet(seq, objects)
-}
-
-trait ArrayExt extends ExtentFactory {
-  val emptyExtent = SortedArray.empty
-  val fullExtent = new SortedArray(0.until(objects).toArray, objects)
-
-  override def newExtent(seq: Iterable[Int]) = new SortedArray(seq.toArray, objects)
-}
-
-trait TreeExt extends ExtentFactory {
-  val emptyExtent = TreeSet.empty
-  val fullExtent = TreeSet.full(objects)
-}
-
-trait BitInt extends IntentFactory {
-  val emptyIntent = BitSet.empty(attributes)
-  val fullIntent = BitSet.full(attributes)
-
-  override def newIntent(seq: Iterable[Int]) = new BitSet(seq, attributes)
-}
-
-trait TreeInt extends IntentFactory {
-  val emptyIntent = TreeSet.empty
-  val fullIntent = TreeSet.full(attributes)
-}
-
 class ArrayBitCbO(rows: Seq[FcaSet], attrs: Int, minSupport: Int = 0, properties: Int = 0)
-  extends CbO(rows, attrs, minSupport, properties) with ArrayExt with BitInt with IdentityPreprocessor {
-  def fork = new ArrayBitCbO(rows, attrs, minSupport, properties)
-}
+  extends CbO(rows, attrs, minSupport, properties) with ArrayExt with BitInt with IdentityPreprocessor
 
 class ArrayBitDynSortCbO(rows: Seq[FcaSet], attrs: Int, minSupport: Int = 0, properties: Int = 0)
-  extends DynSortCbO(rows, attrs, minSupport, properties) with ArrayExt with BitInt with IdentityPreprocessor {
-  def fork = new ArrayBitDynSortCbO(rows, attrs, minSupport, properties)
-}
+  extends DynSortCbO(rows, attrs, minSupport, properties) with ArrayExt with BitInt with IdentityPreprocessor
 
 class ArrayBitFCbO(rows: Seq[FcaSet], attrs: Int, minSupport: Int = 0, properties: Int = 0)
-  extends FCbO(rows, attrs, minSupport, properties) with ArrayExt with BitInt with IdentityPreprocessor {
-  def fork = new ArrayBitFCbO(rows, attrs, minSupport, properties)
-}
+  extends FCbO(rows, attrs, minSupport, properties) with ArrayExt with BitInt with IdentityPreprocessor
 
-class ArrayBitWFBCbO(rows: Seq[FcaSet], attrs: Int, minSupport: Int, properties: Int, threads: Int, cutOff: Int, tid: Int = 0)
-  extends WaveFrontBCbO(rows, attrs, minSupport, properties, threads, cutOff, tid)
-    with ArrayExt with BitInt with IdentityPreprocessor {
-  def fork(tid: Int) = new ArrayBitWFBCbO(rows, attrs, minSupport, properties, threads, cutOff, tid)
-}
-
-class ArrayBitWFFCbO(rows: Seq[FcaSet], attrs: Int, minSupport: Int, properties: Int, threads: Int, cutOff: Int, tid: Int = 0)
-  extends WaveFrontFCbO(rows, attrs, minSupport, properties, threads, cutOff, tid)
-    with ArrayExt with BitInt with IdentityPreprocessor {
-  def fork(tid: Int) = new ArrayBitWFFCbO(rows, attrs, minSupport, properties, threads, cutOff, tid)
-}
 
 object JSM {
 
@@ -181,10 +134,6 @@ object JSM {
       case "cbo" => new ArrayBitCbO(rows, attrs, minSupport, properties)
       case "fcbo" => new ArrayBitFCbO(rows, attrs, minSupport, properties)
       case "dynsort-cbo" => new ArrayBitDynSortCbO(rows, attrs, minSupport, properties)
-      case "wf-bcbo" =>
-        new ArrayBitWFBCbO(rows, attrs, minSupport, properties, Runtime.getRuntime().availableProcessors(), 1)
-      case "wf-fcbo" =>
-        new ArrayBitWFFCbO(rows, attrs, minSupport, properties, Runtime.getRuntime().availableProcessors(), 1)
       case _ => throw new Exception(s"No algorithm ${name} is supported")
     }
   }

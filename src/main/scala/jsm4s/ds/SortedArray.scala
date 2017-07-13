@@ -1,4 +1,4 @@
-package jsm4s
+package jsm4s.ds
 
 import java.util.Arrays
 
@@ -67,4 +67,11 @@ class SortedArray(var table: Array[Int], var tsize: Int) extends FcaSet with Ite
 
 object SortedArray {
   val empty = new SortedArray(Array[Int](), 0)
+}
+
+trait ArrayExt extends ExtentFactory {
+  val emptyExtent = SortedArray.empty
+  val fullExtent = new SortedArray(0.until(objects).toArray, objects)
+
+  override def newExtent(seq: Iterable[Int]) = new SortedArray(seq.toArray, objects)
 }
