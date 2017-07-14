@@ -5,8 +5,10 @@ trait Property {
   def tau: Boolean
   /// If this property is empty, which signals an intersection of
   def empty: Boolean
+  /// Intersect this property with some other property, assumes same type of property
+  def &(p:Property): Property
   /// String encoding of this property
-  def mkString: String
+  def toString: String
 }
 
 object Property {
