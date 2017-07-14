@@ -1,64 +1,85 @@
 package jsm4s
 
 import java.io._
-import java.util.Scanner
 
 import com.github.tototoshi.csv.CSVReader
-import jsm4s.algorithm._
+import jsm4s.algorithm.{Algorithm, FIMI, SimpleCollector, StreamSink}
 import jsm4s.ds._
+import jsm4s.property.{BinaryProperty, Properties, Property}
 
 import scala.io.Source
-import scala.collection.{immutable, mutable}
+import scala.collection.{SortedSet, mutable}
 import scala.util.Random
 
-class ArrayBitCbO(rows: Seq[FcaSet], attrs: Int, minSupport: Int = 0, properties: Int = 0)
-  extends CbO(rows, attrs, minSupport, properties) with ArrayExt with BitInt with IdentityPreprocessor
+object Strategies {
 
-class ArrayBitDynSortCbO(rows: Seq[FcaSet], attrs: Int, minSupport: Int = 0, properties: Int = 0)
-  extends DynSortCbO(rows, attrs, minSupport, properties) with ArrayExt with BitInt with IdentityPreprocessor
+  def votingMajority(seq: Seq[Properties]): Properties = {
+    val len = seq.head.size
+    val votes = Array.fill(len)(mutable.Map[Property, Int]())
+    seq.foreach {
+      case Properties(props) =>
+        for (i <- 0 until len){
+          votes(i).put(props(i), 1+votes(i).getOrElse(props(i), 0))
+        }
+    }
+    new Properties(votes.map{ x => x.maxBy(pair => pair._2)._1 })
+  }
 
-class ArrayBitFCbO(rows: Seq[FcaSet], attrs: Int, minSupport: Int = 0, properties: Int = 0)
-  extends FCbO(rows, attrs, minSupport, properties) with ArrayExt with BitInt with IdentityPreprocessor
-
+}
 
 object JSM {
 
+  private val regex = """#\s+attributes:\s+(\d+)\s+properties:\s+(\w+)""".r
+
   def encode(input: InputStream, output: OutputStream, properties: List[Int]) = {
     val reader = CSVReader.open(new InputStreamReader(input))
-    val uniqueValues = mutable.SortedMap[Int, Set[String]]()
+    val uniqueValues = mutable.SortedMap[Int, SortedSet[String]]()
     val values = mutable.Buffer[Seq[String]]()
     for (line <- reader) {
       values += line
       line.zipWithIndex.foreach(x =>
         uniqueValues.get(x._2) match {
           case Some(set) => uniqueValues.put(x._2, set + x._1)
-          case None => uniqueValues.put(x._2, Set[String](x._1))
+          case None => uniqueValues.put(x._2, SortedSet[String](x._1))
         }
       )
     }
 
     // Translate value from given position to a sequence of binary attributes
-    val translation = mutable.HashMap[(String, Int), Option[Int]]()
+    val attributesTranslation = mutable.HashMap[(String, Int), Option[Int]]()
 
     var lastUsed = 0
     // First map normal attributes that are not properties
     for ((k, v) <- uniqueValues if !properties.contains(k)) {
       val len = if (v.size > 1) v.size - 1 else 1
       for ((item, i) <- v.zipWithIndex) {
-        if (i != 0) translation.put((item, k), Some(lastUsed + i - 1))
-        else translation.put((item, k), None)
+        if (i != 0) attributesTranslation.put((item, k), Some(lastUsed + i - 1))
+        else attributesTranslation.put((item, k), None)
       }
       lastUsed += len
     }
     // Now map properties as pairs of attributes
+    val propertiesTranslation = mutable.HashMap[(String, Int), Property]()
+    var propertiesDescriptor = ""
     for ((k, v) <- uniqueValues if properties.contains(k)) {
-      for ((item, i) <- v.zipWithIndex) {
-        translation.put((item, k), Some(lastUsed + i))
+      if (v.size == 2) {
+        val factory = BinaryProperty.factory(v)
+        for ((item, i) <- v.zipWithIndex) {
+          propertiesTranslation.put((item, k), factory(item))
+        }
+        propertiesDescriptor += "B"
       }
-      lastUsed += v.size
+      else ??? // other properties
     }
+
+    val attributes = lastUsed
+    output.write(s"# attributes: $attributes properties: $propertiesDescriptor\n".getBytes("UTF-8"))
     for (line <- values) {
-      output.write(line.zipWithIndex.map(translation).flatten.sorted.mkString("", " ", "\n").getBytes)
+      val attrs = line.zipWithIndex.filter(p => !properties.contains(p._2))
+        .map(attributesTranslation).flatten.sorted.mkString(" ")
+      val props = line.zipWithIndex.filter(p => properties.contains(p._2))
+        .map(propertiesTranslation).mkString(""," ", "\n")
+      output.write((attrs + " | " +  props).getBytes)
     }
     output.close()
   }
@@ -68,7 +89,11 @@ object JSM {
     val rnd = new Random()
     val firstWriter = new OutputStreamWriter(new FileOutputStream(first))
     val secondWriter = new OutputStreamWriter(new FileOutputStream(second))
-    for (line <- Source.fromFile(input).getLines()) {
+    val lines = Source.fromFile(input).getLines()
+    val header = lines.next()
+    firstWriter.write(header+"\n")
+    secondWriter.write(header+"\n")
+    for (line <- lines) {
       if (rnd.nextInt(full) < firstPart) firstWriter.write(line + "\n")
       else secondWriter.write(line + "\n")
     }
@@ -76,98 +101,94 @@ object JSM {
     secondWriter.close()
   }
 
-  // Only binary properties for now
-  def tau(input: File, output: File, properties: Int) = {
-    val rows = Source.fromFile(input).getLines().map(x => x.split(" ").map(_.toInt).toSet).toBuffer
-    val attrs = rows.map(x => x.max).max + 1
-    val normalAttrs = attrs - 2 * properties
+  def tau(input: File, output: File) = {
+    val lines = Source.fromFile(input).getLines()
     val writer = new OutputStreamWriter(new FileOutputStream(output))
-    for (r <- rows) {
-      val tau = r ++ (normalAttrs until attrs) // tau is all ones in properties
-      writer.write(tau.toArray.sorted.mkString("", " ", "\n"))
+    try{
+      val header = lines.next()
+      val regex(attrs, propertiesDescr) = header
+      val tau = Properties.tau(propertiesDescr)
+      writer.write(header + "\n")
+      for (line <- lines) {
+        val attrs = line.split(" \\| ")(0)
+        writer.write(attrs + " | " + tau.toString + "\n")
+      }
     }
-    writer.close()
+    catch {
+      case e: Exception =>
+        output.delete()
+        throw e
+    }
+    finally writer.close()
   }
 
-  // Only binary attributes for now
-  def recognize(model: File, tau: File, output: File, properties: Int, debug: Boolean) = {
+  def generate(input: InputStream, output: OutputStream, algorithm: String, minSupport: Int) = {
+    val data = load(input)
+    val sink = new StreamSink(data.header, output)
+    val stats = new SimpleCollector
+    val jsm = Algorithm(algorithm, data, minSupport, stats, sink)
+    jsm.run()
+  }
+
+  def recognize(model: File, tau: File, output: File, debug: Boolean, mergeStrategy: (Seq[Properties]=>Properties)) = {
     val hypotheses = load(new FileInputStream(model))
     val examples = load(new FileInputStream(tau))
     val out = new OutputStreamWriter(new FileOutputStream(output))
-    val attrs = Math.max(hypotheses._2, examples._2)
-    val normalAttrs = attrs - properties * 2
-    for (e <- examples._1) {
-      val votesInFavor = Array.ofDim[Int](properties)
-      val votesAgainst = Array.ofDim[Int](properties)
-      val matching = hypotheses._1.filter(p => (p.until(normalAttrs) & e) == p.until(normalAttrs))
-      if (debug) {
-        println(e.mkString("Example:", " ", ""))
-      }
-      for (h <- matching) {
-        if (debug) {
-          val support = examples._1.count { e => (e & h) == h }
-          println(support.toString + h.mkString(">>", " ", ""))
+    val indexedHypotheses = hypotheses.intents.zipWithIndex
+    try{
+      if (hypotheses.header != examples.header)
+        throw new JsmException(s"Metadata of data sets doesn't match `${hypotheses.header}` vs `${examples.header}`")
+      out.write(hypotheses.header+"\n")
+      for (e <- examples.intents) {
+        val matching = indexedHypotheses.filter{
+          pair => (pair._1 & e) == pair._1
         }
-        for (i <- 0 until properties) {
-          if (h.contains(normalAttrs + 2 * i)) votesAgainst(i) += 1
-          else if (h.contains(normalAttrs + 2 * i + 1)) votesInFavor(i) += 1
-        }
+        val prop = mergeStrategy(matching.map{ pair => hypotheses.props(pair._2) })
+        out.write(e.mkString("", " ", " | ") + prop.toString + "\n")
       }
-      val e2 = e.until(normalAttrs)
-      for (i <- 0 until properties) {
-        if (votesInFavor(i) > votesAgainst(i))
-          e2 += normalAttrs + 2 * i + 1
-        else if (votesInFavor(i) < votesAgainst(i))
-          e2 += normalAttrs + 2 * i
-        else if (votesAgainst(i) > 0 && votesAgainst(i) > 0) {
-          e2 += normalAttrs + 2 * i
-          e2 += normalAttrs + 2 * i + 1
-        }
-      }
-      out.write(e2.mkString("", " ", "\n"))
     }
-    out.close()
+    catch {
+      case e: Exception =>
+        output.delete()
+        throw e
+    }
+    finally out.close()
   }
 
-  def generate(name: String, rows: Seq[FcaSet], attrs: Int, minSupport: Int, properties: Int): Algorithm = {
-    name match {
-      case "cbo" => new ArrayBitCbO(rows, attrs, minSupport, properties)
-      case "fcbo" => new ArrayBitFCbO(rows, attrs, minSupport, properties)
-      case "dynsort-cbo" => new ArrayBitDynSortCbO(rows, attrs, minSupport, properties)
-      case _ => throw new Exception(s"No algorithm ${name} is supported")
-    }
-  }
+  def stats(validation: File, prediction: File) = {
+    val valid = load(new FileInputStream(validation))
+    val predicted = load(new FileInputStream(prediction))
+    if (valid.header != predicted.header)
+      throw new JsmException(s"Metadata of data sets doesn't match `${valid.header}` vs `${predicted.header}`")
+    if (valid.props.exists(p => p.tau))
+      throw new JsmException(s"Presence of tau examples in verification data sets (swapped the arguments?)")
 
-  def stats(validation: File, prediction: File, properties: Int) = {
-    val validRows = load(new FileInputStream(validation))
-    val predictedRows = load(new FileInputStream(prediction))
-    val attrs = validRows._2
-    val pairs = validRows._1.zip(predictedRows._1)
+    val attrs = valid.attrs
+    val pairs = valid.props.zip(predicted.props)
     val correct = pairs.count { case (a, b) => a == b }
-    var unknown = pairs.count { case (a, b) =>
-      !(attrs - 2 * properties until attrs).map { i => b.contains(i) }.fold(false)((a, x) => a || x)
-    }
+    var unknown = predicted.props.count { x => x.tau }
+    var confilcts = predicted.props.count { x => x.empty }
+
     println(s"Correct predictions ratio $correct/${pairs.size}")
     println(s"Unknown ratio $unknown/${pairs.size}")
+    println(s"Conflicts ratio $confilcts/${pairs.size}")
   }
 
-  def load(in: InputStream): (Seq[FcaSet], Int) = {
-    val scanner = new Scanner(in)
-    var attrs = 0
-    var rows = mutable.ArrayBuffer[immutable.SortedSet[Int]]()
-    while (scanner.hasNext()) {
-      val line = scanner.nextLine
-      val inner = new Scanner(line)
-      inner.useDelimiter("\\s+")
-      var set = immutable.SortedSet[Int]()
-      while (inner.hasNext) {
-        val v = inner.nextInt()
-        set += v
-        if (v + 1 > attrs)
-          attrs = v + 1
-      }
-      rows += set
+  def load(in: InputStream): FIMI  = {
+    val lines = Source.fromInputStream(in).getLines()
+    val header = lines.next()
+    val regex(attrsDescr, propertyDescr) = header
+    val factory = Properties.loader(propertyDescr)
+    val attrs = attrsDescr.toInt
+    val intents = mutable.Buffer[FcaSet]()
+    val properties = mutable.Buffer[Properties]()
+    for (line <- lines) {
+      val parts = line.split(" \\| ")
+      intents += new BitSet(parts(0).split(" ").map(_.toInt), attrs)
+      properties += factory(parts(1))
     }
-    (rows.map(x => new BitSet(x, attrs)), attrs)
+    FIMI(intents, properties, attrs, header)
   }
 }
+
+class JsmException(message: String) extends Exception(message)

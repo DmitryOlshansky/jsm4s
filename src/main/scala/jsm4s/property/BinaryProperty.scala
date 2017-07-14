@@ -20,6 +20,8 @@ class BinaryProperty(val value: Int) extends Property {
 }
 
 object BinaryProperty{
+  val tau = new BinaryProperty(3)
+
   def intersection(props: BinaryProperty*): BinaryProperty =
     new BinaryProperty(props.foldLeft(3)((a, x) => a & x.value))
 

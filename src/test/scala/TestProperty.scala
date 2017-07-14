@@ -31,29 +31,29 @@ class TestProperty extends WordSpec with Matchers {
 
     "factory throws on wrong input" in {
       intercept[PropertyException] {
-        BinaryProperty.factory("45")
+        BinaryProperty.loader("45")
       }
       intercept[PropertyException] {
-        BinaryProperty.factory("-1")
+        BinaryProperty.loader("-1")
       }
     }
 
     "factory creates property on correct input" in {
-      BinaryProperty.factory("1") shouldEqual  new BinaryProperty(1)
+      BinaryProperty.loader("1") shouldEqual  new BinaryProperty(1)
     }
   }
 
   "Level properties" should {
-    "intersection of the same sign picks minimum" in {
+    "intersection of the same sign picks maximum" in {
       val pos1 = new LevelProperty(3, 1, 0)
       val pos2 = new LevelProperty(3, 3, 0)
-      (pos1 & pos2).positive shouldEqual 1
+      (pos1 & pos2).positive shouldEqual 3
       (pos1 & pos2).negative shouldEqual 0
 
-      val neg1 = new LevelProperty(4, 0, 2)
-      val neg2 = new LevelProperty(4, 0, 3)
-      (neg1 & neg2).positive shouldEqual 0
-      (neg1 & neg2).negative shouldEqual 2
+      val neg1 = new LevelProperty(6, 2, 2)
+      val neg2 = new LevelProperty(6, 1, 3)
+      (neg1 & neg2).positive shouldEqual 2
+      (neg1 & neg2).negative shouldEqual 3
     }
 
     "intersection of opposite sign eliminates overlap" in {

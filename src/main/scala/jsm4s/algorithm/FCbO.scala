@@ -1,18 +1,23 @@
 package jsm4s.algorithm
 
 import jsm4s.ds.FcaSet
+import jsm4s.property.Properties
+
 import scala.collection.Seq
 
 abstract class GenericFCbO(
-                            rows: Seq[FcaSet], attributes: Int, minSupport: Int, properties: Int
-                          ) extends Algorithm(rows, attributes, minSupport, properties) with GenericAlgorithm {
+                            rows: Seq[FcaSet], props: Seq[Properties],
+                            attributes: Int, minSupport: Int,
+                            stats: StatsCollector, sink: Sink
+                          )
+  extends Algorithm(rows, props, attributes, minSupport, stats, sink) with QueueAlgorithm {
 
   var recDepth = 0
 
   def method(A: FcaSet, B: FcaSet, y: Int, errors: Array[FcaSet], N: Int): Unit = {
     val q = Array.ofDim[(FcaSet, FcaSet, Int, Array[FcaSet], Int)](attributes - y)
     var top = 0
-    if (!output(A, B)) return
+    output(A, B)
     val M = N + attributes
     var j = y
     while (j < attributes) {
@@ -20,7 +25,7 @@ abstract class GenericFCbO(
       if (!B.contains(j)) {
         if (errors(N + j).subsetOf(B, j)) {
           val ret = closeConcept(A, j)
-          onClosure()
+          stats.onClosure()
           if (ret._1) {
             val C = ret._2
             val D = ret._3
@@ -30,7 +35,7 @@ abstract class GenericFCbO(
             }
             else {
               errors(M + j) = D
-              onCanonicalTestFailure()
+              stats.onCanonicalTestFailure()
             }
           }
         }
@@ -55,8 +60,11 @@ abstract class GenericFCbO(
   }
 }
 
-abstract class FCbO(rows: Seq[FcaSet], attrs: Int, minSupport: Int, properties: Int)
-  extends GenericFCbO(rows, attrs, minSupport, properties) {
+abstract class FCbO(rows: Seq[FcaSet], props:Seq[Properties],
+                    attrs: Int, minSupport: Int,
+                    stats: StatsCollector, sink: Sink
+                   )
+  extends GenericFCbO(rows, props, attrs, minSupport, stats, sink) {
   def processQueue(value: AnyRef): Unit = {
     val x = value.asInstanceOf[(FcaSet, FcaSet, Int, Array[FcaSet], Int)]
     method(x._1, x._2, x._3, x._4, x._5)

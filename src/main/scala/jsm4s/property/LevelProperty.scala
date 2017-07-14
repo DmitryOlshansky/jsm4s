@@ -34,6 +34,8 @@ class LevelProperty(val levels: Int, val positive:Int, val negative:Int) extends
 
 object LevelProperty{
 
+  def tau(levels: Int) = new LevelProperty(levels, levels, levels)
+
   def loader(levels: Int):Property.Factory = (x) => {
     val parts = x.split(":")
     new LevelProperty(levels, parts(0).toInt, parts(1).toInt)

@@ -11,7 +11,7 @@ fi
 
 java -jar $JAR encode -p 0 data/mushroom.csv mushroom.dat
 java -jar $JAR split 8:2 mushroom.dat training.dat verify.dat
-java -jar $JAR tau -p1 verify.dat tau.dat
-java -jar $JAR generate -p1 -m model.dat training.dat
-java -jar $JAR recognize -p1 -m model.dat -o predictions.dat tau.dat
-java -jar $JAR stats -p1 verify.dat predictions.dat
+java -jar $JAR tau verify.dat tau.dat
+java -jar $JAR generate -m model.dat training.dat
+java -jar $JAR recognize -m model.dat -o predictions.dat tau.dat
+java -jar $JAR stats verify.dat predictions.dat

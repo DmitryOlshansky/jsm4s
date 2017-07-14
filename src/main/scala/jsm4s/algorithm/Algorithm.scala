@@ -1,12 +1,14 @@
 package jsm4s.algorithm
 
 import java.io.{ByteArrayOutputStream, OutputStream}
-import java.util.concurrent.Executors
 
 import com.typesafe.scalalogging.LazyLogging
-import jsm4s.ds.{ExtentFactory, FcaSet, IntentFactory}
+import jsm4s.ds._
+import jsm4s.property.{Properties, Property}
 
 import scala.collection._
+
+case class FIMI(intents: Seq[FcaSet], props: Seq[Properties], attrs: Int, header:String)
 
 trait Preprocessor {
   var rows: Seq[FcaSet]
@@ -54,7 +56,15 @@ trait SortingPreprocessor extends Preprocessor with IntentFactory {
   }
 }
 
-trait StatsCollector extends LazyLogging {
+trait StatsCollector {
+  def onClosure(): Unit
+
+  def onCanonicalTestFailure(): Unit
+
+  def printStats(): Unit
+}
+
+class SimpleCollector extends StatsCollector with LazyLogging {
   var closures = 0
   var canonicalTests = 0
 
@@ -68,58 +78,66 @@ trait StatsCollector extends LazyLogging {
   }
 }
 
-abstract class Algorithm(
-                          var rows: Seq[FcaSet], val attributes: Int, val minSupport: Int, val properties: Int
-                        ) extends Runnable with ExtentFactory with IntentFactory with StatsCollector with Preprocessor {
+class NullCollector extends StatsCollector {
+  def onClosure(): Unit = {}
 
-  var out: OutputStream = System.out
+  def onCanonicalTestFailure(): Unit = {}
+
+  def printStats(): Unit = {}
+}
+
+trait Sink {
+  def apply(hypothesis: Hypothesis):Unit
+
+  def close():Unit
+}
+
+class StreamSink(header: String, val out: OutputStream) extends Sink {
   val buf = new ByteArrayOutputStream()
 
-  // filter on extent-intent pair
-  def filter(extent: FcaSet, intent: FcaSet): Boolean = {
-    if (properties == 0) true
-    else {
-      val attrsOnly = intent.until(attributes - 2 * properties)
-      val nullAttr = attrsOnly.isEmpty
-      var hasProperties = false
-      for (i <- attributes - 2 * properties until attributes)
-        if (intent.contains(i)) hasProperties = true
-      if (hasProperties && !nullAttr && extent.size >= minSupport) {
-        // Filter out by counter examples
-        var failures = 0
-        for (r <- rows) {
-          val example = r.until(attributes - 2 * properties)
-          if ((example & attrsOnly) == attrsOnly) {
-            for (i <- attributes - 2 * properties until attributes)
-              if (r.contains(i) ^ intent.contains(i)) failures += 1
-          }
-          if (failures > 0) return false
-        }
-        true
-      }
-      else
-        false
+  buf.write((header + "\n").getBytes)
 
+  override def apply(h: Hypothesis) = {
+    val str = h.intent.mkString(" ") + h.props.value.mkString(" | ", " ", "\n")
+    buf.write(str.getBytes("UTF-8"))
+    if (buf.size() > 16384) {
+      buf.writeTo(out)
+      buf.reset()
     }
   }
 
-  def output(extent: FcaSet, intent: FcaSet) = {
+  override def close(): Unit = {
+    buf.writeTo(out)
+    buf.reset()
+    out.close()
+  }
+}
+
+abstract class Algorithm(
+                          var rows: Seq[FcaSet], val props: Seq[Properties],
+                          val attributes: Int, val minSupport: Int,
+                          val stats: StatsCollector, val sink: Sink
+                        ) extends Runnable with ExtentFactory with IntentFactory with Preprocessor {
+
+  val emptyProperties = new Properties(Seq())
+
+  // filter on extent-intent pair
+  def merge(extent: FcaSet, intent: FcaSet): Properties = {
+    if (props.size == 0) emptyProperties
+    else {
+      val properties = extent.map(e => props(e)).reduceLeft((a,b) => a & b)
+      properties
+    }
+  }
+
+  def output(extent: FcaSet, intent: FcaSet):Unit = {
     val postProcessed = this match {
       case _: IdentityPreprocessor => intent
       case _ => postProcess(intent)
     }
-    if (filter(extent, postProcessed)) {
-      buf.write(postProcessed.mkString("", " ", "\n").getBytes("UTF-8"))
-      if (buf.size() > 16384) {
-        flush()
-      }
-    }
-    true
-  }
-
-  def flush() = {
-    buf.writeTo(out)
-    buf.reset()
+    val props = merge(extent, postProcessed)
+    if (!props.empty && extent.size >= minSupport)
+      sink(Hypothesis(postProcessed, props))
   }
 
   def closeConcept(A: FcaSet, y: Int) = {
@@ -144,9 +162,38 @@ abstract class Algorithm(
       case _ => rows.map(x => preProcess(x))
     }
     perform()
+    sink.close()
   }
 }
 
-trait GenericAlgorithm extends Algorithm {
+trait QueueAlgorithm extends Algorithm {
   def processQueue(value: AnyRef): Unit
+}
+
+class ArrayBitCbO(rows: Seq[FcaSet], props: Seq[Properties],
+                  attrs: Int, minSupport: Int,
+                  stats: StatsCollector, sink: Sink)
+  extends CbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
+
+class ArrayBitDynSortCbO(rows: Seq[FcaSet], props: Seq[Properties],
+                         attrs: Int, minSupport: Int,
+                         stats: StatsCollector, sink: Sink)
+  extends DynSortCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
+
+class ArrayBitFCbO(rows: Seq[FcaSet], props: Seq[Properties],
+                   attrs: Int, minSupport: Int,
+                   stats: StatsCollector, sink: Sink)
+  extends FCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
+
+
+object Algorithm{
+  def apply(name: String, data: FIMI,
+               minSupport: Int, stats:StatsCollector, sink:Sink): Algorithm = {
+    name match {
+      case "cbo" => new ArrayBitCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
+      case "fcbo" => new ArrayBitFCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
+      case "dynsort-cbo" => new ArrayBitDynSortCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
+      case _ => throw new Exception(s"No algorithm ${name} is supported")
+    }
+  }
 }
