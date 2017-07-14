@@ -1,5 +1,5 @@
 #!/bin/bash
-JAR=target/scala-2.12/jsm4s-0.9.0.jar
+JAR=target/scala-2.12/jsm4s-1.0.0.jar
 
 JARDATE=x`stat -c %Y $JAR`
 MARKDATE=x`stat -c %Y .release.mark`
