@@ -1,28 +1,35 @@
 package jsm4s
 
 import java.io._
+import java.util.concurrent.{ConcurrentHashMap, Executors, ForkJoinPool}
+import java.util.concurrent.locks.Lock
 
 import com.github.tototoshi.csv.CSVReader
-import jsm4s.algorithm.{Algorithm, FIMI, SimpleCollector, StreamSink}
+import jsm4s.algorithm._
 import jsm4s.ds._
 import jsm4s.property.{BinaryProperty, Properties, Property}
 
 import scala.io.Source
 import scala.collection.{SortedSet, mutable}
+import scala.concurrent.Future
+import scala.concurrent.duration.Duration
 import scala.util.Random
 
 object Strategies {
 
   def votingMajority(seq: Seq[Properties]): Properties = {
-    val len = seq.head.size
-    val votes = Array.fill(len)(mutable.Map[Property, Int]())
-    seq.foreach {
-      case Properties(props) =>
-        for (i <- 0 until len){
-          votes(i).put(props(i), 1+votes(i).getOrElse(props(i), 0))
-        }
+    if (seq.isEmpty) Properties(Seq())
+    else {
+      val len = seq.head.size
+      val votes = Array.fill(len)(mutable.Map[Property, Int]())
+      seq.foreach {
+        case Properties(props) =>
+          for (i <- 0 until len) {
+            votes(i).put(props(i), 1 + votes(i).getOrElse(props(i), 0))
+          }
+      }
+      new Properties(votes.map { x => x.maxBy(pair => pair._2)._1 })
     }
-    new Properties(votes.map{ x => x.maxBy(pair => pair._2)._1 })
   }
 
 }
@@ -51,10 +58,9 @@ object JSM {
     var lastUsed = 0
     // First map normal attributes that are not properties
     for ((k, v) <- uniqueValues if !properties.contains(k)) {
-      val len = if (v.size > 1) v.size - 1 else 1
+      val len = v.size
       for ((item, i) <- v.zipWithIndex) {
-        if (i != 0) attributesTranslation.put((item, k), Some(lastUsed + i - 1))
-        else attributesTranslation.put((item, k), None)
+        attributesTranslation.put((item, k), Some(lastUsed + i))
       }
       lastUsed += len
     }
@@ -185,7 +191,10 @@ object JSM {
     for (line <- lines) {
       val parts = line.split(" \\| ")
       intents += new BitSet(parts(0).split(" ").map(_.toInt), attrs)
-      properties += factory(parts(1))
+      if (parts.size == 1)
+        properties += new Properties(Seq())
+      else
+        properties += factory(parts(1))
     }
     FIMI(intents, properties, attrs, header)
   }

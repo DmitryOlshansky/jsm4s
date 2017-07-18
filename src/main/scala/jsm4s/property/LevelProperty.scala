@@ -1,7 +1,5 @@
 package jsm4s.property
 
-import scala.collection.SortedSet
-
 class LevelProperty(val levels: Int, val positive:Int, val negative:Int) extends Property {
 
   def &(property: Property):LevelProperty = {
@@ -37,7 +35,10 @@ object LevelProperty{
   def tau(levels: Int) = new LevelProperty(levels, levels, levels)
 
   def loader(levels: Int):Property.Factory = (x) => {
-    val parts = x.split(":")
-    new LevelProperty(levels, parts(0).toInt, parts(1).toInt)
+    if(x.isEmpty) new LevelProperty(levels, 0, 0)
+    else {
+      val parts = x.split(":")
+      new LevelProperty(levels, parts(0).toInt, parts(1).toInt)
+    }
   }
 }

@@ -4,9 +4,8 @@ JAR=target/scala-2.12/jsm4s-1.0.0.jar
 JARDATE=x`stat -c %Y $JAR`
 MARKDATE=x`stat -c %Y .release.mark`
 
-if [ $JARDATE != $MARKDATE ] ; then 
-	sbt assembly
-	touch $JAR .release.mark
+if ! sbt assembly ; then
+	exit 1
 fi
 
 java -jar $JAR encode -p 0 data/mushroom.csv mushroom.dat

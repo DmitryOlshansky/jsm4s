@@ -10,7 +10,7 @@ case class Properties(val value: Seq[Property]){
 
   def size = value.size
 
-  def tau: Boolean = !value.exists(p => !p.tau)
+  def tau: Boolean = value.nonEmpty && !value.exists(p => !p.tau)
 
   override def toString = value.mkString(" ")
 }

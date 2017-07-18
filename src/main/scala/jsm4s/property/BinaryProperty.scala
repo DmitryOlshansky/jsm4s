@@ -35,7 +35,7 @@ object BinaryProperty{
   }
 
   def loader:Property.Factory = (x) => {
-    val value = x.toInt
+    val value = if(x.isEmpty) 0 else x.toInt
     if (value < 0 || value > 3) throw new PropertyException(s"illegal value for boolean property `$value`")
     new BinaryProperty(value)
   }
