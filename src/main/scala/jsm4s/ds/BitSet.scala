@@ -36,6 +36,16 @@ class BitSet(val table: Array[Long], val length: Int) extends FcaSet with Serial
     new BitSet(result, length)
   }
 
+  override def &=(set: FcaSet): FcaSet = {
+    val bitset = set.asInstanceOf[BitSet]
+    var i = 0
+    while (i < table.size) {
+      table(i) = table(i) & bitset.table(i)
+      i += 1
+    }
+    this
+  }
+
   override def +=(x: Int): FcaSet = {
     table(x / 64) |= 1L << (x % 64)
     this

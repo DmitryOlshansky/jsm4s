@@ -142,12 +142,12 @@ abstract class Algorithm(
 
   def closeConcept(A: FcaSet, y: Int) = {
     var C = emptyExtent.dup
-    var D = fullIntent
+    var D = fullIntent.dup
     var cnt = 0
     for (i <- A) {
       if (rows(i) contains y) {
         C += i
-        D = D & rows(i)
+        D &= rows(i)
         cnt += 1
       }
     }

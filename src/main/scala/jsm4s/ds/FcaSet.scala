@@ -13,6 +13,8 @@ trait FcaSet extends Iterable[Int] {
 
   def &(set: FcaSet): FcaSet
 
+  def &=(set: FcaSet): FcaSet
+
   def until(j: Int): FcaSet
 
   def dup: FcaSet

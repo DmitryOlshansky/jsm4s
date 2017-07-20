@@ -35,6 +35,15 @@ class SortedArray(var table: Array[Int], var tsize: Int) extends FcaSet with Ite
     new SortedArray(result, rsize)
   }
 
+  override def &=(set: FcaSet): FcaSet = {
+    val target = set.asInstanceOf[SortedArray]
+    val result = Array.ofDim[Int](math.min(tsize, target.tsize))
+    val rsize = UIntSetOps.intersect(table, tsize, target.table, target.tsize, result)
+    table = result
+    tsize = rsize
+    this
+  }
+
   override def until(j: Int): FcaSet = {
     new SortedArray(Arrays.copyOf(table, j), j)
   }

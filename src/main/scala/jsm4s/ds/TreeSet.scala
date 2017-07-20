@@ -24,6 +24,12 @@ class TreeSet(var set: immutable.TreeSet[Int]) extends FcaSet {
     new TreeSet(this.set & set.set)
   }
 
+  override def &=(that: FcaSet): FcaSet = {
+    val thatSet = that.asInstanceOf[TreeSet]
+    set = set & thatSet.set
+    this
+  }
+
   override def +=(x: Int): FcaSet = {
     set += x
     this
