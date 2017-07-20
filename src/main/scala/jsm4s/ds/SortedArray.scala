@@ -69,18 +69,46 @@ class SortedArray(var table: Array[Int], var tsize: Int) extends FcaSet with Ite
     true
   }
 
-  override def subsetOf(that: FcaSet, j: Int): Boolean = ???
+  override def subsetOf(that: FcaSet, k: Int): Boolean = {
+    var i = 0
+    var j = 0
+    val rhs = that.asInstanceOf[SortedArray]
+    while (i < tsize && j < rhs.tsize && table(i) < k) {
+      if (table(i) == rhs.table(j)) {
+        i += 1
+        j += 1
+      }
+      else if(table(i) < rhs.table(j)) {
+        i += 1
+      }
+      else if(table(i) > rhs.table(j)) {
+        j += 1
+      }
+    }
+    i == tsize || i == k
+  }
 
   override def size: Int = tsize
 }
 
 object SortedArray {
   val empty = new SortedArray(Array[Int](), 0)
+  def apply(seq: Iterable[Int]) = {
+    val v = seq.toArray
+    new SortedArray(v, v.length)
+  }
 }
 
 trait ArrayExt extends ExtentFactory {
-  val emptyExtent = SortedArray.empty
-  val fullExtent = new SortedArray(0.until(objects).toArray, objects)
+  override val emptyExtent = SortedArray.empty
+  override val fullExtent = SortedArray(0.until(objects))
 
-  override def newExtent(seq: Iterable[Int]) = new SortedArray(seq.toArray, objects)
+  override def newExtent(seq: Iterable[Int]) = SortedArray(seq)
+}
+
+trait ArrayInt extends IntentFactory {
+  override val emptyIntent = SortedArray.empty
+  override val fullIntent = SortedArray(0.until(attributes))
+
+  override def newIntent(seq: Iterable[Int]) = SortedArray(seq)
 }

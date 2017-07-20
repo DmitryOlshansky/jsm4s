@@ -190,17 +190,61 @@ class ArrayBitPFCbO(rows: Seq[FcaSet], props: Seq[Properties],
   extends PFCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
 
 
-object Algorithm extends LazyLogging {
-  def apply(name: String, data: FIMI,
-               minSupport: Int, stats:StatsCollector, sink:Sink): Algorithm = {
+class ArraySparseBitCbO(rows: Seq[FcaSet], props: Seq[Properties],
+                  attrs: Int, minSupport: Int,
+                  stats: StatsCollector, sink: Sink)
+  extends CbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with SparseBitInt with IdentityPreprocessor
 
-    val algo = name match {
-      case "cbo" => new ArrayBitCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
-      case "pcbo" => new ArrayBitPCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
-      case "fcbo" => new ArrayBitFCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
-      case "pfcbo" => new ArrayBitPFCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
-      case "dynsort-cbo" => new ArrayBitDynSortCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
-      case _ => throw new Exception(s"No algorithm ${name} is supported")
+class ArraySparseBitPCbO(rows: Seq[FcaSet], props: Seq[Properties],
+                         attrs: Int, minSupport: Int,
+                         stats: StatsCollector, sink: Sink)
+  extends PCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with SparseBitInt with IdentityPreprocessor
+
+class ArraySparseBitDynSortCbO(rows: Seq[FcaSet], props: Seq[Properties],
+                         attrs: Int, minSupport: Int,
+                         stats: StatsCollector, sink: Sink)
+  extends DynSortCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with SparseBitInt with IdentityPreprocessor
+
+class ArraySparseBitFCbO(rows: Seq[FcaSet], props: Seq[Properties],
+                   attrs: Int, minSupport: Int,
+                   stats: StatsCollector, sink: Sink)
+  extends FCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with SparseBitInt with IdentityPreprocessor
+
+class ArraySparseBitPFCbO(rows: Seq[FcaSet], props: Seq[Properties],
+                         attrs: Int, minSupport: Int,
+                         stats: StatsCollector, sink: Sink)
+  extends PFCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with SparseBitInt with IdentityPreprocessor
+
+
+
+object Algorithm extends LazyLogging {
+  def apply(name: String, dataStructure: String, data: FIMI,
+               minSupport: Int, stats:StatsCollector, sink:Sink): Algorithm = {
+    val total = data.intents.foldLeft(0L){(a,b) => a + b.size }
+    val density = 100*total / (data.intents.size * data.attrs).toDouble
+    logger.info("Context density is {}", density)
+    val algo = dataStructure match {
+      case "sparse" =>
+        logger.info("Using sparse data-structure")
+        val sparseSets = data.intents.map(x => SparseBitSet(x))
+        name match {
+          case "cbo" => new ArraySparseBitCbO(sparseSets, data.props, data.attrs, minSupport, stats, sink)
+          case "fcbo" => new ArraySparseBitFCbO(sparseSets, data.props, data.attrs, minSupport, stats, sink)
+          case "pcbo" => new ArraySparseBitPCbO(sparseSets, data.props, data.attrs, minSupport, stats, sink)
+          case "pfcbo" => new ArraySparseBitPFCbO(sparseSets, data.props, data.attrs, minSupport, stats, sink)
+          case "dynsort-cbo" => new ArraySparseBitDynSortCbO(sparseSets, data.props, data.attrs, minSupport, stats, sink)
+          case _ => throw new Exception(s"No algorithm ${name} is supported")
+        }
+      case "dense" =>
+      logger.info("Using dense data-structure")
+        name match {
+          case "cbo" => new ArrayBitCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
+          case "fcbo" => new ArrayBitFCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
+          case "pcbo" => new ArrayBitPCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
+          case "pfcbo" => new ArrayBitPFCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
+          case "dynsort-cbo" => new ArrayBitDynSortCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
+          case _ => throw new Exception(s"No algorithm ${name} is supported")
+        }
     }
     logger.info("Using {} algorithm", name)
     algo

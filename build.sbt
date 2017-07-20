@@ -17,4 +17,5 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.3" % "test"
 )
 
+
 assemblyJarName in assembly := "jsm4s-" + version.value + ".jar"

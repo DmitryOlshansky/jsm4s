@@ -4,7 +4,7 @@ import org.scalatest._
 import jsm4s.ds.BitSet
 
 class TestBitSet extends FlatSpec with Matchers {
-  "Bit set" should "work like integer set" in {
+  "BitSet" should "work like integer set" in {
     val b1 = BitSet.empty(700)
     val b2 = BitSet.empty(700)
     assert(b2.mkString(",") == "")

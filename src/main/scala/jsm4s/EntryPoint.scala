@@ -34,13 +34,19 @@ object PredictCommand extends Subcommand("predict") {
 object GenerateCommand extends Subcommand("generate") {
   val algorithm = opt[String](default = Some("pfcbo"), short = 'a', descr = "One of: cbo, fcbo, dynsort-cbo, wf-cbo, wf-fcbo")
   val minSupport = opt[Int](name = "support", descr = "Minimum number of objects to support hypothesis")
+  val ds = opt[String](name = "data-structure", descr = "Data structures to use : dense or sparse")
   val model = opt[File](short = 'm', descr = "File to store model in")
   val input = trailArg[File](descr = "Input file with examples to train")
 }
 
 object JsmCommand extends Subcommand("jsm") {
   val algorithm = opt[String](default = Some("pfcbo"), short = 'a', descr = "One of: cbo, fcbo, dynsort-cbo, pcbo, pfcbo")
+  val minSupport = opt[Int](name = "support", descr = "Minimum number of objects to support hypothesis")
+  val ds = opt[String](name = "data-structure", descr = "Data structures to use : dense or sparse")
+  val output = opt[File](short = 'o', descr = "Output file with predictions")
+  val debug = opt[Boolean](short = 'd', descr = "Debug mode - output hypotheses for each example")
   val input = trailArg[File]()
+  val tau = trailArg[File](descr = "File with Tau examples to predict")
 }
 
 object StatsCommand extends Subcommand("stats") {
@@ -80,7 +86,10 @@ object EntryPoint extends LazyLogging {
         val input = g.input.map(f => new FileInputStream(f).asInstanceOf[InputStream])
           .getOrElse(System.in)
         timeIt("Generating the model") {
-          JSM.generate(input, output, g.algorithm.getOrElse(throw new JsmException("no algorithm specified")), g.minSupport.getOrElse(2))
+          JSM.generate(input, output,
+            g.algorithm.getOrElse(throw new JsmException("no algorithm specified")),
+            g.ds.getOrElse("dense"),
+            g.minSupport.getOrElse(2))
         }
 
       case Some(SplitCommand) =>

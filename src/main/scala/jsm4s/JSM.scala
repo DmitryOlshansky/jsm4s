@@ -30,11 +30,11 @@ object Strategies {
 
 object JSM extends LazyLogging {
 
-  def generate(input: InputStream, output: OutputStream, algorithm: String, minSupport: Int) = {
+  def generate(input: InputStream, output: OutputStream, algorithm: String, dataStructure: String, minSupport: Int) = {
     val data = FIMI.load(input)
     val sink = new StreamSink(data.header, output)
     val stats = new SimpleCollector
-    val jsm = Algorithm(algorithm, data, minSupport, stats, sink)
+    val jsm = Algorithm(algorithm, dataStructure, data, minSupport, stats, sink)
     jsm.run()
   }
 
