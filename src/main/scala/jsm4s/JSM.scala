@@ -147,7 +147,7 @@ object JSM {
       out.write(hypotheses.header+"\n")
       for (e <- examples.intents) {
         val matching = indexedHypotheses.filter{
-          pair => (pair._1 & e) == pair._1
+          pair => pair._1.subsetOf(e, examples.attrs)
         }
         val prop = mergeStrategy(matching.map{ pair => hypotheses.props(pair._2) })
         out.write(e.mkString("", " ", " | ") + prop.toString + "\n")
