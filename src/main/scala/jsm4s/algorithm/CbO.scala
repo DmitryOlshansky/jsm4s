@@ -42,7 +42,8 @@ trait GenericBCbO extends QueueAlgorithm {
   def method(A: FcaSet, B: FcaSet, y: Int): Unit = {
     output(A, B)
     val q = mutable.Queue[(FcaSet, FcaSet, Int)]()
-    for (j <- y until attributes) {
+    var j = y
+    while(j < attributes){
       if (!B.contains(j)) {
         val ret = closeConcept(A, j)
         if (ret._1) {
@@ -52,6 +53,7 @@ trait GenericBCbO extends QueueAlgorithm {
           else stats.onCanonicalTestFailure()
         }
       }
+      j += 1
     }
     recDepth += 1
     while (!q.isEmpty) processQueue(q.dequeue())

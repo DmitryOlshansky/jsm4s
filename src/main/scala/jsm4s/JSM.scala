@@ -140,16 +140,14 @@ object JSM {
     val hypotheses = load(new FileInputStream(model))
     val examples = load(new FileInputStream(tau))
     val out = new OutputStreamWriter(new FileOutputStream(output))
-    val indexedHypotheses = hypotheses.intents.zipWithIndex
     try{
       if (hypotheses.header != examples.header)
         throw new JsmException(s"Metadata of data sets doesn't match `${hypotheses.header}` vs `${examples.header}`")
       out.write(hypotheses.header+"\n")
+      val combined = hypotheses.intents.zip(hypotheses.props).map{ x => Hypothesis(x._1, x._2) }
+      val recognizer = new Recognizer(combined, hypotheses.attrs, mergeStrategy)
       for (e <- examples.intents) {
-        val matching = indexedHypotheses.filter{
-          pair => pair._1.subsetOf(e, examples.attrs)
-        }
-        val prop = mergeStrategy(matching.map{ pair => hypotheses.props(pair._2) })
+        val prop = recognizer(e)
         out.write(e.mkString("", " ", " | ") + prop.toString + "\n")
       }
     }

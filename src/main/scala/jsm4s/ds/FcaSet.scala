@@ -25,7 +25,7 @@ trait FcaSet extends Iterable[Int] {
     (this & mask) == (that & mask)
   }
 
-  def subsetOf(that: FcaSet, j: Int): Boolean
+  def subsetOf(that: FcaSet, upTo: Int): Boolean
 
   def size: Int
 }
