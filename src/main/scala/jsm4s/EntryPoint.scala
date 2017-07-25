@@ -24,7 +24,7 @@ object TauCommand extends Subcommand("tau") {
   val output = trailArg[File]()
 }
 
-object RecognizeCommand extends Subcommand("recognize") {
+object PredictCommand extends Subcommand("predict") {
   val model = opt[File](short = 'm', descr = "File with model that contains hypotheses")
   val output = opt[File](short = 'o', descr = "Output file with predictions")
   val debug = opt[Boolean](short = 'd', descr = "Debug mode - output hypotheses for each example")
@@ -53,7 +53,7 @@ class Config(arguments: Seq[String]) extends ScallopConf(arguments) {
   addSubcommand(SplitCommand)
   addSubcommand(TauCommand)
   addSubcommand(GenerateCommand)
-  addSubcommand(RecognizeCommand)
+  addSubcommand(PredictCommand)
   addSubcommand(JsmCommand)
   addSubcommand(StatsCommand)
   verify()
@@ -71,7 +71,7 @@ object EntryPoint extends LazyLogging {
         val output = e.output.map(f => new FileOutputStream(f).asInstanceOf[OutputStream])
           .getOrElse(System.out)
         timeIt("Encoding the dataset") {
-          JSM.encode(input, output, e.properties.getOrElse(List()))
+          FIMI.encode(input, output, e.properties.getOrElse(List()))
         }
       case Some(GenerateCommand) =>
         val g = GenerateCommand
@@ -90,7 +90,7 @@ object EntryPoint extends LazyLogging {
         (s.input.toOption, s.first.toOption, s.second.toOption) match {
           case (Some(input), Some(first), Some(second)) =>
             timeIt("Splitting the dataset") {
-              JSM.split(input, first, second, firstPart.toInt, secondPart.toInt)
+              FIMI.split(input, first, second, firstPart.toInt, secondPart.toInt)
             }
           case _ =>
             logger.error("Too few arguments to split command")
@@ -99,16 +99,16 @@ object EntryPoint extends LazyLogging {
         val t = TauCommand
         (t.input.toOption, t.output.toOption) match {
           case (Some(input), Some(output)) => timeIt("Conversion to Tau") {
-            JSM.tau(input, output)
+            FIMI.tau(input, output)
           }
           case _ => logger.error("Too few arguments to tau command")
         }
-      case Some(RecognizeCommand) =>
-        val r = RecognizeCommand
+      case Some(PredictCommand) =>
+        val r = PredictCommand
         (r.model.toOption, r.tau.toOption, r.output.toOption) match {
           case (Some(model), Some(tau), Some(output)) =>
-            timeIt("Recognition") {
-              JSM.recognize(model, tau, output, r.debug.getOrElse(false), Strategies.votingMajority)
+            timeIt("Prediction in total") {
+              JSM.predict(model, tau, output, r.debug.getOrElse(false), Strategies.votingMajority)
             }
           case _ =>
             logger.error("Too few arguments to recognize command")

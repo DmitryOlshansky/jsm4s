@@ -9,7 +9,7 @@ import scala.collection.mutable
 
 case class Tree(splits: Seq[(Int, Seq[Hypothesis])], rem: Seq[Hypothesis])
 
-class Recognizer(val hypotheses: Seq[Hypothesis], val attrs: Int, val mergeStrategy: (Seq[Properties] => Properties))
+class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, val mergeStrategy: (Seq[Properties] => Properties))
 extends LazyLogging {
 
   private def buildTree: Tree = {

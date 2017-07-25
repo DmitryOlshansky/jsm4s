@@ -12,6 +12,8 @@ Potential future goals - add support for Apache Spark and/or better integration 
 
 ## Examples
 
+Run any of the `scripts/*.sh`.
+
 A sample ML session against Mushroom data set is as follows.
 First encode the dataset to FIMI format using first attribute (0-based indexing) as target property:
 ```
@@ -35,7 +37,7 @@ java -jar jsm4s-1.0.0.jar generate -m model.dat training.dat
 
 Run classifier (prediction in JSM parlance):
 ```
-java -jar jsm4s-1.0.0.jar recognize -m model.dat -o predictions.dat tau.dat
+java -jar jsm4s-1.0.0.jar predict -m model.dat -o predictions.dat tau.dat
 ```
 
 Finally estimate correctness:

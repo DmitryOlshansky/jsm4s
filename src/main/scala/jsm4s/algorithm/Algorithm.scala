@@ -3,12 +3,11 @@ package jsm4s.algorithm
 import java.io.{ByteArrayOutputStream, OutputStream}
 
 import com.typesafe.scalalogging.LazyLogging
+import jsm4s.FIMI
 import jsm4s.ds._
 import jsm4s.property.{Properties, Property}
 
 import scala.collection._
-
-case class FIMI(intents: Seq[FcaSet], props: Seq[Properties], attrs: Int, header:String)
 
 trait Preprocessor {
   var rows: Seq[FcaSet]

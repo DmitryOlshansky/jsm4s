@@ -11,7 +11,7 @@ scalacOptions := Seq("-unchecked", "-feature", "-deprecation", "-encoding", "utf
 libraryDependencies ++= Seq(
   "org.rogach" %% "scallop" % "3.0.3",
   "com.github.tototoshi" %% "scala-csv" % "1.3.4",
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.6.0",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
   "org.slf4j" % "slf4j-api" % "1.7.5",
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.scalatest" %% "scalatest" % "3.0.3" % "test"

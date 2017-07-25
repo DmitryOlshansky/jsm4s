@@ -17,6 +17,6 @@ java -jar $JAR tau verify.dat tau.dat
 echo "---"
 java -jar $JAR generate -m model.dat training.dat
 echo "---"
-java -jar $JAR recognize -m model.dat -o predictions.dat tau.dat
+java -jar $JAR predict -m model.dat -o predictions.dat tau.dat
 echo "---"
 java -jar $JAR stats verify.dat predictions.dat
