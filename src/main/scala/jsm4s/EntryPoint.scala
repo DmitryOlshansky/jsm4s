@@ -2,8 +2,8 @@ package jsm4s
 
 import java.io._
 
-import com.typesafe.scalalogging.{LazyLogging, Logger}
-import jsm4s.algorithm.{Algorithm, SimpleCollector, StreamSink}
+import jsm4s.Utils._
+import com.typesafe.scalalogging.LazyLogging
 import org.rogach.scallop.{ScallopConf, Subcommand}
 
 object EncodeCommand extends Subcommand("encode") {
@@ -61,11 +61,8 @@ class Config(arguments: Seq[String]) extends ScallopConf(arguments) {
 
 object EntryPoint extends LazyLogging {
 
-  var log = Logger(EntryPoint.getClass)
-
   def main(args: Array[String]) = {
     val config = new Config(args)
-    val before = System.nanoTime()
     config.subcommand match {
       case Some(EncodeCommand) =>
         val e = EncodeCommand
@@ -73,14 +70,18 @@ object EntryPoint extends LazyLogging {
           .getOrElse(System.in)
         val output = e.output.map(f => new FileOutputStream(f).asInstanceOf[OutputStream])
           .getOrElse(System.out)
-        JSM.encode(input, output, e.properties.getOrElse(List()))
+        timeIt("Encoding the dataset") {
+          JSM.encode(input, output, e.properties.getOrElse(List()))
+        }
       case Some(GenerateCommand) =>
         val g = GenerateCommand
         val output = g.model.map(f => new FileOutputStream(f).asInstanceOf[OutputStream])
           .getOrElse(System.out)
         val input = g.input.map(f => new FileInputStream(f).asInstanceOf[InputStream])
           .getOrElse(System.in)
-        JSM.generate(input, output, g.algorithm.getOrElse("fcbo"), g.minSupport.getOrElse(2))
+        timeIt("Generating the model") {
+          JSM.generate(input, output, g.algorithm.getOrElse("fcbo"), g.minSupport.getOrElse(2))
+        }
 
       case Some(SplitCommand) =>
         val s = SplitCommand
@@ -88,38 +89,43 @@ object EntryPoint extends LazyLogging {
         val Pattern(firstPart, secondPart) = s.ratio.getOrElse(throw new Exception("Ratio is expected in [0-9]+:[0-9]+ form"))
         (s.input.toOption, s.first.toOption, s.second.toOption) match {
           case (Some(input), Some(first), Some(second)) =>
-            JSM.split(input, first, second, firstPart.toInt, secondPart.toInt)
+            timeIt("Splitting the dataset") {
+              JSM.split(input, first, second, firstPart.toInt, secondPart.toInt)
+            }
           case _ =>
-            log.error("Too few arguments to split command")
+            logger.error("Too few arguments to split command")
         }
       case Some(TauCommand) =>
         val t = TauCommand
         (t.input.toOption, t.output.toOption) match {
-          case (Some(input), Some(output)) => JSM.tau(input, output)
-          case _ => log.error("Too few arguments to tau command")
+          case (Some(input), Some(output)) => timeIt("Conversion to Tau") {
+            JSM.tau(input, output)
+          }
+          case _ => logger.error("Too few arguments to tau command")
         }
       case Some(RecognizeCommand) =>
         val r = RecognizeCommand
         (r.model.toOption, r.tau.toOption, r.output.toOption) match {
           case (Some(model), Some(tau), Some(output)) =>
-            JSM.recognize(model, tau, output, r.debug.getOrElse(false), Strategies.votingMajority)
+            timeIt("Recognition") {
+              JSM.recognize(model, tau, output, r.debug.getOrElse(false), Strategies.votingMajority)
+            }
           case _ =>
-            log.error("Too few arguments to recognize command")
+            logger.error("Too few arguments to recognize command")
         }
       case Some(StatsCommand) =>
         val s = StatsCommand
         (s.validation.toOption, s.prediction.toOption) match {
           case (Some(validation), Some(prediction)) =>
-            JSM.stats(validation, prediction)
+            timeIt("Stats calculation") {
+              JSM.stats(validation, prediction)
+            }
           case _ =>
-            log.error("Too few arguments to stats command")
+            logger.error("Too few arguments to stats command")
         }
       case _ =>
         println("No command specified")
         System.exit(1)
     }
-    val after = System.nanoTime()
-    val delta = (after - before) / 1e9
-    logger.info(f"Time: ${delta}%.5f sec")
   }
 }

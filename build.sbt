@@ -2,7 +2,7 @@ name         := "jsm4s"
 
 organization := "olshansky.me"
 
-version      := "1.1.0"
+version      := "1.2.0"
 
 scalaVersion := "2.12.2"
 
@@ -13,7 +13,7 @@ libraryDependencies ++= Seq(
   "com.github.tototoshi" %% "scala-csv" % "1.3.4",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.6.0",
   "org.slf4j" % "slf4j-api" % "1.7.5",
-  "org.slf4j" % "slf4j-simple" % "1.7.5",
+  "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.scalatest" %% "scalatest" % "3.0.3" % "test"
 )
 

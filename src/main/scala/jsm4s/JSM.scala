@@ -1,19 +1,18 @@
 package jsm4s
 
 import java.io._
-import java.util.concurrent.{ConcurrentHashMap, Executors, ForkJoinPool}
-import java.util.concurrent.locks.Lock
+import java.util.Scanner
 
 import com.github.tototoshi.csv.CSVReader
 import jsm4s.algorithm._
 import jsm4s.ds._
+import jsm4s.Utils._
 import jsm4s.property.{BinaryProperty, Properties, Property}
 
 import scala.io.Source
 import scala.collection.{SortedSet, mutable}
-import scala.concurrent.Future
-import scala.concurrent.duration.Duration
 import scala.util.Random
+
 
 object Strategies {
 
@@ -137,8 +136,8 @@ object JSM {
   }
 
   def recognize(model: File, tau: File, output: File, debug: Boolean, mergeStrategy: (Seq[Properties]=>Properties)) = {
-    val hypotheses = load(new FileInputStream(model))
-    val examples = load(new FileInputStream(tau))
+    val hypotheses = timeIt("Loading hypotheses")(load(new FileInputStream(model)))
+    val examples = timeIt("Loading examples")(load(new FileInputStream(tau)))
     val out = new OutputStreamWriter(new FileOutputStream(output))
     try{
       if (hypotheses.header != examples.header)
@@ -146,9 +145,9 @@ object JSM {
       out.write(hypotheses.header+"\n")
       val combined = hypotheses.intents.zip(hypotheses.props).map{ x => Hypothesis(x._1, x._2) }
       val recognizer = new Recognizer(combined, hypotheses.attrs, mergeStrategy)
-      for (e <- examples.intents) {
-        val prop = recognizer(e)
-        out.write(e.mkString("", " ", " | ") + prop.toString + "\n")
+      val predictions = timeIt("Calculating predictions")(examples.intents.par.map { e => (e,recognizer(e)) }).seq
+      timeIt("Predictions serialization"){
+        for (p <- predictions) out.write(p._1.mkString("", " ", " | ") + p._2.toString + "\n")
       }
     }
     catch {
@@ -186,9 +185,11 @@ object JSM {
     val attrs = attrsDescr.toInt
     val intents = mutable.Buffer[FcaSet]()
     val properties = mutable.Buffer[Properties]()
+
     for (line <- lines) {
       val parts = line.split(" \\| ")
-      intents += new BitSet(parts(0).split(" ").map(_.toInt), attrs)
+      val attrsIterable = parts(0).split(" ").map(_.toInt)
+      intents += new BitSet(attrsIterable, attrs)
       if (parts.size == 1)
         properties += new Properties(Seq())
       else
