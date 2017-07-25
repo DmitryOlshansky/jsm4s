@@ -1,5 +1,7 @@
 package jsm4s.algorithm
 
+import java.util.concurrent.{ForkJoinPool, TimeUnit}
+
 import jsm4s.ds.FcaSet
 import jsm4s.property.Properties
 
@@ -68,5 +70,25 @@ abstract class FCbO(rows: Seq[FcaSet], props:Seq[Properties],
   def processQueue(value: AnyRef): Unit = {
     val x = value.asInstanceOf[(FcaSet, FcaSet, Int, Array[FcaSet], Int)]
     method(x._1, x._2, x._3, x._4, x._5)
+  }
+}
+
+abstract class PFCbO(rows: Seq[FcaSet], props: Seq[Properties],
+                     attrs: Int, minSupport: Int,
+                     stats: StatsCollector, sink: Sink)
+  extends GenericFCbO(rows, props, attrs, minSupport, stats, sink)  {
+
+  private val pool = ForkJoinPool.commonPool
+
+  override def processQueue(value: AnyRef) = {
+    val tup = value.asInstanceOf[(FcaSet,FcaSet,Int,Array[FcaSet], Int)]
+    pool.submit(new Runnable {
+      override def run(): Unit = method(tup._1, tup._2, tup._3, tup._4, tup._5)
+    })
+  }
+
+  override def perform = {
+    super.perform()
+    pool.awaitQuiescence(1000, TimeUnit.DAYS)
   }
 }

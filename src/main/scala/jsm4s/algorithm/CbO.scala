@@ -1,5 +1,7 @@
 package jsm4s.algorithm
 
+import java.util.concurrent.{ForkJoinPool, TimeUnit}
+
 import jsm4s.ds.FcaSet
 import jsm4s.property.Properties
 
@@ -35,7 +37,11 @@ abstract class CbO(rows: Seq[FcaSet], props: Seq[Properties],
   }
 }
 
-trait GenericBCbO extends QueueAlgorithm {
+abstract class GenericBCbO(
+                        rows: Seq[FcaSet], props: Seq[Properties],
+                        attributes: Int, minSupport: Int,
+                        stats: StatsCollector, sink: Sink)
+  extends Algorithm(rows, props, attributes, minSupport, stats, sink) with QueueAlgorithm {
 
   var recDepth = 0
 
@@ -64,5 +70,25 @@ trait GenericBCbO extends QueueAlgorithm {
     val A = fullExtent
     val B = rows.fold(fullIntent)((a, b) => a & b) // full intersection
     method(A, B, 0)
+  }
+}
+
+abstract class PCbO(rows: Seq[FcaSet], props: Seq[Properties],
+                    attrs: Int, minSupport: Int,
+                    stats: StatsCollector, sink: Sink)
+  extends GenericBCbO(rows, props, attrs, minSupport, stats, sink) {
+
+  private val pool = ForkJoinPool.commonPool
+
+  override def processQueue(value: AnyRef) = {
+    val tup = value.asInstanceOf[(FcaSet,FcaSet,Int)]
+    pool.submit(new Runnable {
+      override def run(): Unit = method(tup._1, tup._2, tup._3)
+    })
+  }
+
+  override def perform = {
+    super.perform()
+    pool.awaitQuiescence(1000, TimeUnit.DAYS)
   }
 }

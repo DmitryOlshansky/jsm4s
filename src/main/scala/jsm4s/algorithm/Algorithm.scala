@@ -174,6 +174,12 @@ class ArrayBitCbO(rows: Seq[FcaSet], props: Seq[Properties],
                   stats: StatsCollector, sink: Sink)
   extends CbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
 
+class ArrayBitPCbO(rows: Seq[FcaSet], props: Seq[Properties],
+                   attrs: Int, minSupport: Int,
+                   stats: StatsCollector, sink: Sink)
+  extends PCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
+
+
 class ArrayBitDynSortCbO(rows: Seq[FcaSet], props: Seq[Properties],
                          attrs: Int, minSupport: Int,
                          stats: StatsCollector, sink: Sink)
@@ -184,15 +190,25 @@ class ArrayBitFCbO(rows: Seq[FcaSet], props: Seq[Properties],
                    stats: StatsCollector, sink: Sink)
   extends FCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
 
+class ArrayBitPFCbO(rows: Seq[FcaSet], props: Seq[Properties],
+                    attrs: Int, minSupport: Int,
+                    stats: StatsCollector, sink: Sink)
+  extends PFCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
 
-object Algorithm{
+
+object Algorithm extends LazyLogging {
   def apply(name: String, data: FIMI,
                minSupport: Int, stats:StatsCollector, sink:Sink): Algorithm = {
-    name match {
+
+    val algo = name match {
       case "cbo" => new ArrayBitCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
+      case "pcbo" => new ArrayBitPCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
       case "fcbo" => new ArrayBitFCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
+      case "pfcbo" => new ArrayBitPFCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
       case "dynsort-cbo" => new ArrayBitDynSortCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
       case _ => throw new Exception(s"No algorithm ${name} is supported")
     }
+    logger.info("Using {} algorithm", name)
+    algo
   }
 }
