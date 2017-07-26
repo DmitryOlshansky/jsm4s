@@ -119,7 +119,7 @@ object FIMI {
     for (line <- lines) {
       val parts = line.split(" \\| ")
       val attrsIterable = parts(0).split(" ").map(_.toInt)
-      intents += new BitSet(attrsIterable, attrs)
+      intents += BitSet(attrsIterable, attrs)
       if (parts.size == 1)
         properties += new Properties(Seq())
       else

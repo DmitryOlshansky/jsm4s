@@ -2,7 +2,7 @@ package jsm4s.algorithm
 
 import java.util.concurrent.{ForkJoinPool, TimeUnit}
 
-import jsm4s.ds.FcaSet
+import jsm4s.ds.{FcaSet, BitSet}
 import jsm4s.property.Properties
 
 import scala.collection.{Seq, mutable}

@@ -29,7 +29,11 @@ class TestBitSet extends FlatSpec with Matchers {
     assert(b5.subsetOf(b4, 6))
     assert((b4 & b5).mkString(" ") == "1 3")
     assert((b4.until(2) & b5.until(2)).mkString(" ") == "1")
+  }
 
+  "Bit set" should "not fail on long sequences" in {
+    val bs = BitSet(Seq(3,10,21,27,31,32,33,35,49,51,58,62,82,85,89,90,102,105,116,120), 125)
+    bs.mkString(",") shouldEqual "3,10,21,27,31,32,33,35,49,51,58,62,82,85,89,90,102,105,116,120"
   }
 }
 

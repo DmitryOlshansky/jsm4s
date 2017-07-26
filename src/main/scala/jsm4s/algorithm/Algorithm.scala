@@ -7,8 +7,6 @@ import jsm4s.FIMI
 import jsm4s.ds._
 import jsm4s.property.{Properties, Property}
 
-import scala.collection._
-
 trait Preprocessor {
   var rows: Seq[FcaSet]
   val objects = rows.size
