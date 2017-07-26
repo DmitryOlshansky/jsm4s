@@ -1,6 +1,6 @@
 package jsm4s.algorithm
 
-import java.io.{ByteArrayOutputStream, OutputStream}
+import java.io.{ByteArrayOutputStream, OutputStream, OutputStreamWriter}
 
 import com.typesafe.scalalogging.LazyLogging
 import jsm4s.FIMI
@@ -92,23 +92,19 @@ trait Sink {
 }
 
 class StreamSink(header: String, val out: OutputStream) extends Sink {
-  val buf = new ByteArrayOutputStream()
+  val writer = new OutputStreamWriter(out)
 
-  buf.write((header + "\n").getBytes)
+  writer.write(header + "\n")
 
   override def apply(h: Hypothesis) = {
     val str = h.intent.mkString(" ") + h.props.value.mkString(" | ", " ", "\n")
-    buf.write(str.getBytes("UTF-8"))
-    if (buf.size() > 16384) {
-      buf.writeTo(out)
-      buf.reset()
+    writer.synchronized {
+      writer.write(str)
     }
   }
 
   override def close(): Unit = {
-    buf.writeTo(out)
-    buf.reset()
-    out.close()
+    writer.close()
   }
 }
 
