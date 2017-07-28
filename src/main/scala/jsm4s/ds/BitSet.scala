@@ -103,7 +103,15 @@ class BitSet(val table: Array[Int], val length: Int) extends FcaSet with Seriali
     true
   }
 
-  override def size = length
+  override def size = {
+    var cnt = 0
+    var i = 0
+    while(i < table.size) {
+      cnt += Integer.bitCount(table(i))
+      i += 1
+    }
+    cnt
+  }
 }
 
 object BitSet {

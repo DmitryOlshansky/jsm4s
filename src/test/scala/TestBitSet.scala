@@ -13,6 +13,8 @@ class TestBitSet extends FlatSpec with Matchers {
     b2 += 4
     b1 += 121
     b2 += 121
+    assert(b1.size == 3)
+    assert(b2.size == 2)
     val b3 = b1 & b2
     assert(b3.mkString(",") == "4,121")
     assert(b3 != b1)
@@ -28,6 +30,7 @@ class TestBitSet extends FlatSpec with Matchers {
     b5 += 3
     assert(b5.subsetOf(b4, 6))
     assert((b4 & b5).mkString(" ") == "1 3")
+    assert((b4 & b5).size == 2)
     assert((b4.until(2) & b5.until(2)).mkString(" ") == "1")
   }
 
