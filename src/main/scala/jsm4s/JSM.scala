@@ -61,6 +61,36 @@ object JSM extends LazyLogging {
     finally out.close()
   }
 
+  def jsm(input: File, tau: File, output: File, algorithm: String, dataStructure: String, minSupport: Int,
+          debug: Boolean, mergeStrategy: (Seq[Properties]=>Properties)) = {
+    val training = timeIt("Loading training examples")(FIMI.load(new FileInputStream(input)))
+    val examples = timeIt("Loading tau examples")(FIMI.load(new FileInputStream(tau)))
+    val out = new OutputStreamWriter(new FileOutputStream(output))
+    try {
+      if (training.header != examples.header)
+        throw new JsmException(s"Metadata of data sets doesn't match `${training.header}` vs `${examples.header}`")
+      val sink = new ArraySink()
+      val stats = new SimpleCollector
+      val algo = Algorithm(algorithm, dataStructure, training, minSupport, stats, sink)
+      timeIt("Generating hypotheses")(algo.run())
+      val hypotheses = sink.hypotheses
+      val predictor = new Predictor(hypotheses, training.attrs, mergeStrategy)
+      val predictions = timeIt("Calculating predictions")(examples.intents.par.map { e => (e, predictor(e)) }).seq
+      timeIt("Predictions serialization"){
+        out.write(training.header+"\n")
+        for (p <- predictions) out.write(p._1.mkString("", " ", " | ") + p._2.toString + "\n")
+      }
+    }
+    catch {
+      case e: Exception =>
+        output.delete()
+        throw e
+    }
+    finally {
+      out.close()
+    }
+  }
+
   def stats(validation: File, prediction: File) = {
     val valid = FIMI.load(new FileInputStream(validation))
     val predicted = FIMI.load(new FileInputStream(prediction))

@@ -7,6 +7,8 @@ import jsm4s.FIMI
 import jsm4s.ds._
 import jsm4s.property.{Properties, Property}
 
+import scala.collection.mutable
+
 trait Preprocessor {
   var rows: Seq[FcaSet]
   val objects = rows.size
@@ -104,6 +106,20 @@ class StreamSink(header: String, val out: OutputStream) extends Sink {
   override def close(): Unit = {
     writer.close()
   }
+}
+
+class ArraySink extends Sink {
+  private val buffer = mutable.ArrayBuffer[Hypothesis]()
+
+  override def apply(h: Hypothesis) = {
+    buffer.synchronized {
+      buffer += h
+    }
+  }
+
+  override def close(): Unit = {}
+
+  def hypotheses:Seq[Hypothesis] = buffer
 }
 
 abstract class Algorithm(

@@ -120,7 +120,21 @@ object EntryPoint extends LazyLogging {
               JSM.predict(model, tau, output, r.debug.getOrElse(false), Strategies.votingMajority)
             }
           case _ =>
-            logger.error("Too few arguments to recognize command")
+            logger.error("Too few arguments to predict command")
+        }
+      case Some(JsmCommand) =>
+        val j = JsmCommand
+        (j.input.toOption, j.tau.toOption, j.output.toOption) match {
+          case (Some(input), Some(tau), Some(output)) =>
+            timeIt("JSM method in total") {
+              JSM.jsm(input, tau, output,
+                j.algorithm.getOrElse(throw new JsmException("no algorithm specified")),
+                j.ds.getOrElse("dense"),
+                j.minSupport.getOrElse(2),
+                j.debug.getOrElse(false), Strategies.votingMajority)
+            }
+          case _ =>
+            logger.error("Too few arguments to jsm command")
         }
       case Some(StatsCommand) =>
         val s = StatsCommand
