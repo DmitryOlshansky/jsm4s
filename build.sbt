@@ -2,8 +2,6 @@ name         := "jsm4s"
 
 organization := "olshansky.me"
 
-version      := "1.3.0"
-
 scalaVersion := "2.12.3"
 
 scalacOptions := Seq("-unchecked", "-feature", "-deprecation", "-encoding", "utf8")
@@ -17,5 +15,10 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.3" % "test"
 )
 
+enablePlugins(GitVersioning)
+
+enablePlugins(GitBranchPrompt)
+
+git.useGitDescribe := true
 
 assemblyJarName in assembly := "jsm4s-" + version.value + ".jar"
