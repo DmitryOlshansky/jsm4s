@@ -21,6 +21,8 @@ trait FcaSet extends Iterable[Int] {
 
   def ==(that: FcaSet): Boolean
 
+  def equalUpTo(that: FcaSet, j: Int): Boolean
+
   def equalWithMask(that: FcaSet, mask: FcaSet): Boolean = {
     (this & mask) == (that & mask)
   }

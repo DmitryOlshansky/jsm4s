@@ -31,8 +31,8 @@ abstract class GenericFCbO(
           if (ret._1) {
             val C = ret._2
             val D = ret._3
-            if (B.until(j) == D.until(j)) {
-              q(top) = ((C, D, j + 1, errors, M))
+            if (B.equalUpTo(D, j)) {
+              q(top) = (C, D, j + 1, errors, M)
               top += 1
             }
             else {

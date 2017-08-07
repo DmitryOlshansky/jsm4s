@@ -142,6 +142,8 @@ class SparseBitSet(var table: Array[Long], var len: Int) extends FcaSet {
     }
   }
 
+  override def equalUpTo(that: FcaSet, j: Int): Boolean = ???
+
   override def subsetOf(that: FcaSet, y: Int): Boolean = {
     val lhs = until(y).asInstanceOf[SparseBitSet]
     val rhs = that.until(y).asInstanceOf[SparseBitSet]

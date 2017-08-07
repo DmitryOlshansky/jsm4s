@@ -69,6 +69,15 @@ class SortedArray(var table: Array[Int], var tsize: Int) extends FcaSet with Ite
     true
   }
 
+  override def equalUpTo(that: FcaSet, j: Int): Boolean = {
+    val target = that.asInstanceOf[SortedArray]
+    for (i <- 0 until math.min(tsize, target.tsize)) {
+      if (table(i) >= j) return true
+      if (table(i) != target.table(i)) return false
+    }
+    true
+  }
+
   override def subsetOf(that: FcaSet, k: Int): Boolean = {
     var i = 0
     var j = 0

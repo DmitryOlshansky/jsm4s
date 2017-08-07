@@ -89,6 +89,21 @@ class BitSet(val table: Array[Int], val length: Int) extends FcaSet with Seriali
     true
   }
 
+  override def equalUpTo(that: FcaSet, j: Int): Boolean = {
+    val bitset = that.asInstanceOf[BitSet]
+    val upTo = j / 32
+    var i = 0
+    while (i < upTo) {
+      if (table(i) != bitset.table(i)) return false
+      i += 1
+    }
+    val rem = j % 32
+    if (rem > 0) {
+      if ((table(i) & ((1<<rem)-1)) != (bitset.table(i) & ((1<<rem)-1))) return false
+    }
+    true
+  }
+
   override def subsetOf(that: FcaSet, j: Int): Boolean = {
     val bitset = that.asInstanceOf[BitSet]
     val rem = j % 32
@@ -112,6 +127,7 @@ class BitSet(val table: Array[Int], val length: Int) extends FcaSet with Seriali
     }
     cnt
   }
+
 }
 
 object BitSet {

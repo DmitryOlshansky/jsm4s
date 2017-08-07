@@ -22,7 +22,7 @@ abstract class CbO(rows: Seq[FcaSet], props: Seq[Properties],
         if (ret._1) {
           val C = ret._2
           val D = ret._3
-          if (B.until(j) == D.until(j)) method(C, D, j + 1)
+          if (B.equalUpTo(D, j)) method(C, D, j + 1)
           else stats.onCanonicalTestFailure()
         }
       }
@@ -55,7 +55,7 @@ abstract class GenericBCbO(
         if (ret._1) {
           val C = ret._2
           val D = ret._3
-          if (B.until(j) == D.until(j)) q.enqueue((C, D, j + 1))
+          if (B.equalUpTo(D, j)) q.enqueue((C, D, j + 1))
           else stats.onCanonicalTestFailure()
         }
       }
