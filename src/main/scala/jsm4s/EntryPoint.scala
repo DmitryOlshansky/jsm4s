@@ -89,7 +89,7 @@ object EntryPoint extends LazyLogging {
         timeIt("Generating the model") {
           JSM.generate(input, output,
             g.algorithm.getOrElse(throw new JsmException("no algorithm specified")),
-            g.ds.getOrElse("dense"),
+            "dense",
             g.minSupport.getOrElse(2))
         }
 
@@ -130,7 +130,7 @@ object EntryPoint extends LazyLogging {
             timeIt("JSM method in total") {
               JSM.jsm(input, tau, output,
                 j.algorithm.getOrElse(throw new JsmException("no algorithm specified")),
-                j.ds.getOrElse("dense"),
+                "dense",
                 j.minSupport.getOrElse(2),
                 j.debug.getOrElse(false), Strategies.votingMajority)
             }
