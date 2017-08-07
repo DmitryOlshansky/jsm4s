@@ -4,12 +4,13 @@ import com.typesafe.scalalogging.LazyLogging
 import jsm4s.ds.FcaSet
 import jsm4s.property.Properties
 import jsm4s.Utils._
+import jsm4s.algorithm.Strategies.MergeStrategy
 
 import scala.collection.mutable
 
 case class Tree(splits: Seq[(Int, Seq[Hypothesis])], rem: Seq[Hypothesis])
 
-class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, val mergeStrategy: (Seq[Properties] => Properties))
+class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, val mergeStrategy: MergeStrategy)
 extends LazyLogging {
 
   private def buildTree: Tree = {

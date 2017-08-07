@@ -3,10 +3,11 @@ package jsm4s
 import java.io._
 
 import com.github.tototoshi.csv.CSVReader
+import jsm4s.attribute.{Attribute, EnumAttribute}
 import jsm4s.ds.{BitSet, FcaSet}
 import jsm4s.property.{BinaryProperty, Properties, Property}
 
-import scala.collection.{Seq, SortedSet, mutable}
+import scala.collection.{Seq, SortedMap, SortedSet, mutable}
 import scala.io.Source
 import scala.util.Random
 
@@ -18,37 +19,58 @@ object FIMI {
 
   def encode(input: InputStream, output: OutputStream, properties: List[Int]) = {
     val reader = CSVReader.open(new InputStreamReader(input))
-    val uniqueValues = mutable.SortedMap[Int, SortedSet[String]]()
+    // for each index map of value --> count of records with this value
+    val valuesDistribution = mutable.SortedMap[Int, mutable.SortedMap[String, Int]]()
+    // for each index map of value --> set of possible properties for this value
+    val propertiesDistribution = mutable.SortedMap[Int, mutable.SortedMap[String, Set[String]]]()
     val values = mutable.Buffer[Seq[String]]()
     for (line <- reader) {
-      values += line
-      line.zipWithIndex.foreach(x =>
-        uniqueValues.get(x._2) match {
-          case Some(set) => uniqueValues.put(x._2, set + x._1)
-          case None => uniqueValues.put(x._2, SortedSet[String](x._1))
+      if (line != List("")) {
+        values += line
+        val row = line.zipWithIndex
+        row.foreach { x =>
+          valuesDistribution.get(x._2) match {
+            case Some(map) => map.get(x._1) match {
+              case Some(count) => map.put(x._1, count + 1)
+              case None => map.put(x._1, 1)
+            }
+            case None => valuesDistribution.put(x._2, mutable.SortedMap[String, Int](x._1 -> 1))
+          }
+          // makes sense only for attributes
+          if (!properties.contains(x._2)) {
+            val propString = row.filter(pair => properties.contains(pair._2)).map(_._1).mkString
+            propertiesDistribution.get(x._2) match {
+              case Some(map) => map.get(x._1) match {
+                case Some(set) => map.put(x._1, set + propString)
+                case None => map.put(x._1, Set(propString))
+              }
+              case None => propertiesDistribution.put(x._2, mutable.SortedMap[String, Set[String]](x._1 -> Set(propString)))
+            }
+          }
         }
-      )
+      }
     }
-
-    // Translate value from given position to a sequence of binary attributes
-    val attributesTranslation = mutable.HashMap[(String, Int), Option[Int]]()
 
     var lastUsed = 0
     // First map normal attributes that are not properties
-    for ((k, v) <- uniqueValues if !properties.contains(k)) {
-      val len = v.size
-      for ((item, i) <- v.zipWithIndex) {
-        attributesTranslation.put((item, k), Some(lastUsed + i))
+    val attributesTranslation = valuesDistribution.map {
+      case (index, values) =>
+      if(properties.contains(index)) null
+      else {
+        val ret = Attribute.factory(values, propertiesDistribution(index), lastUsed)
+        lastUsed += ret.size
+        ret
       }
-      lastUsed += len
-    }
+    }.toSeq
+
     // Now map properties as pairs of attributes
     val propertiesTranslation = mutable.HashMap[(String, Int), Property]()
     var propertiesDescriptor = ""
-    for ((k, v) <- uniqueValues if properties.contains(k)) {
+    for ((k, v) <- valuesDistribution if properties.contains(k)) {
       if (v.size == 2) {
-        val factory = BinaryProperty.factory(v)
-        for ((item, i) <- v.zipWithIndex) {
+        val keys = v.keys.toSeq
+        val factory = BinaryProperty.factory(SortedSet[String](keys: _*))
+        for (item <- keys) {
           propertiesTranslation.put((item, k), factory(item))
         }
         propertiesDescriptor += "B"
@@ -60,7 +82,7 @@ object FIMI {
     output.write(s"# attributes: $attributes properties: $propertiesDescriptor\n".getBytes("UTF-8"))
     for (line <- values) {
       val attrs = line.zipWithIndex.filter(p => !properties.contains(p._2))
-        .map(attributesTranslation).flatten.sorted.mkString(" ")
+        .flatMap { pair => attributesTranslation(pair._2)(pair._1) }.sorted.mkString(" ")
       val props = line.zipWithIndex.filter(p => properties.contains(p._2))
         .map(propertiesTranslation).mkString(""," ", "\n")
       output.write((attrs + " | " +  props).getBytes)

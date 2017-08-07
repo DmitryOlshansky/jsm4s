@@ -4,6 +4,7 @@ import java.io._
 
 import jsm4s.Utils._
 import com.typesafe.scalalogging.LazyLogging
+import jsm4s.algorithm.Strategies
 import org.rogach.scallop.{ScallopConf, Subcommand}
 
 object EncodeCommand extends Subcommand("encode") {

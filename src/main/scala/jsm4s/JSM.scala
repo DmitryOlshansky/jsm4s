@@ -5,28 +5,8 @@ import java.io._
 import com.typesafe.scalalogging.LazyLogging
 import jsm4s.algorithm._
 import jsm4s.Utils._
-import jsm4s.property.{Properties, Property}
-
-import scala.collection.mutable
-
-object Strategies {
-
-  def votingMajority(seq: Seq[Properties]): Properties = {
-    if (seq.isEmpty) Properties(Seq())
-    else {
-      val len = seq.head.size
-      val votes = Array.fill(len)(mutable.Map[Property, Int]())
-      seq.foreach {
-        case Properties(props) =>
-          for (i <- 0 until len) {
-            votes(i).put(props(i), 1 + votes(i).getOrElse(props(i), 0))
-          }
-      }
-      new Properties(votes.map { x => x.maxBy(pair => pair._2)._1 })
-    }
-  }
-
-}
+import jsm4s.algorithm.Strategies.MergeStrategy
+import jsm4s.property.Properties
 
 object JSM extends LazyLogging {
 
@@ -38,7 +18,7 @@ object JSM extends LazyLogging {
     jsm.run()
   }
 
-  def predict(model: File, tau: File, output: File, debug: Boolean, mergeStrategy: (Seq[Properties]=>Properties)) = {
+  def predict(model: File, tau: File, output: File, debug: Boolean, mergeStrategy: MergeStrategy) = {
     val hypotheses = timeIt("Loading hypotheses")(FIMI.load(new FileInputStream(model)))
     val examples = timeIt("Loading examples")(FIMI.load(new FileInputStream(tau)))
     val out = new OutputStreamWriter(new FileOutputStream(output))
