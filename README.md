@@ -17,32 +17,32 @@ Run any of the `scripts/*.sh`.
 A sample ML session against Mushroom data set is as follows.
 First encode the dataset to FIMI format using first attribute (0-based indexing) as target property:
 ```
-java -jar jsm4s-1.3.0.jar encode -p 0 data/mushroom.csv mushroom.dat
+java -jar jsm4s-1.4.0.jar encode -p 0 data/mushroom.csv mushroom.dat
 ```
 
 Then split into training and validation datasets
 ```
-java -jar jsm4s-1.3.0.jar split 8:2 mushroom.dat training.dat verify.dat
+java -jar jsm4s-1.4.0.jar split 8:2 mushroom.dat training.dat verify.dat
 ```
 
 Make a test dataset with hidden property values, also known as tau examples in JSM parlance:
 ```
-java -jar jsm4s-1.3.0.jar tau verify.dat tau.dat
+java -jar jsm4s-1.4.0.jar tau verify.dat tau.dat
 ```
 
 Train a JSM model, specifying number of binary properties:
 ```
-java -jar jsm4s-1.3.0.jar generate -m model.dat training.dat
+java -jar jsm4s-1.4.0.jar generate -m model.dat training.dat
 ```
 
 Run classifier (prediction in JSM parlance):
 ```
-java -jar jsm4s-1.3.0.jar predict -m model.dat -o predictions.dat tau.dat
+java -jar jsm4s-1.4.0.jar predict -m model.dat -o predictions.dat tau.dat
 ```
 
 Finally estimate correctness:
 ```
-java -jar jsm4s-1.3.0.jar stats verify.dat predictions.dat
+java -jar jsm4s-1.4.0.jar stats verify.dat predictions.dat
 ```
 
 Which should produce something close to the following:
