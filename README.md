@@ -1,6 +1,6 @@
 # jsm4s
 
-JSM is a machine learning algorithm based on mining of associative rules by induction followed by filtering via various validation logic procedures. The different flavors of JSM found in the wild is most of the time due to different sets of logic procedures implemented. Find more about JSM and JSM4S in particular in the [blog post](https://olshansky.me/jsm/ml/scala/2017/08/05/jsm-as-machine-learning.html).
+JSM is a machine learning algorithm based on mining of associative rules by induction followed by filtering via various validation logic procedures. The different flavors of JSM found in the wild is most of the time due to different sets of logic procedures implemented. Find more about JSM in the [introductory blog post](https://olshansky.me/jsm/ml/scala/2017/08/05/jsm-as-machine-learning.html).
 
 jsm4s strives to provide the most complete and fast implementations of the following in Scala:
 - mining step, also usable as FCA concepts mining or frequent closed itemset mining
