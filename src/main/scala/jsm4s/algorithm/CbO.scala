@@ -74,11 +74,11 @@ abstract class GenericBCbO(
 }
 
 abstract class PCbO(rows: Seq[FcaSet], props: Seq[Properties],
-                    attrs: Int, minSupport: Int,
+                    attrs: Int, minSupport: Int, threads: Int,
                     stats: StatsCollector, sink: Sink)
   extends GenericBCbO(rows, props, attrs, minSupport, stats, sink) {
 
-  private val pool = ForkJoinPool.commonPool
+  private val pool = if (threads == 0) ForkJoinPool.commonPool else new ForkJoinPool(threads)
 
   override def processQueue(value: AnyRef) = {
     val tup = value.asInstanceOf[(FcaSet,FcaSet,Int)]

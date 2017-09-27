@@ -35,6 +35,7 @@ object PredictCommand extends Subcommand("predict") {
 object GenerateCommand extends Subcommand("generate") {
   val algorithm = opt[String](default = Some("pfcbo"), short = 'a', descr = "One of: cbo, fcbo, dynsort-cbo, wf-cbo, wf-fcbo")
   val minSupport = opt[Int](name = "support", descr = "Minimum number of objects to support hypothesis")
+  val threads = opt[Int](name="t", descr = "Number of threads to use in generation")
   val ds = opt[String](name = "data-structure", descr = "Data structures to use : dense or sparse")
   val model = opt[File](short = 'm', descr = "File to store model in")
   val input = trailArg[File](descr = "Input file with examples to train")
@@ -42,6 +43,7 @@ object GenerateCommand extends Subcommand("generate") {
 
 object JsmCommand extends Subcommand("jsm") {
   val algorithm = opt[String](default = Some("pfcbo"), short = 'a', descr = "One of: cbo, fcbo, dynsort-cbo, pcbo, pfcbo")
+  val threads = opt[Int](name="t", descr = "Number of threads to use in generation")
   val minSupport = opt[Int](name = "support", descr = "Minimum number of objects to support hypothesis")
   val ds = opt[String](name = "data-structure", descr = "Data structures to use : dense or sparse")
   val output = opt[File](short = 'o', descr = "Output file with predictions")
@@ -90,7 +92,7 @@ object EntryPoint extends LazyLogging {
           JSM.generate(input, output,
             g.algorithm.getOrElse(throw new JsmException("no algorithm specified")),
             "dense",
-            g.minSupport.getOrElse(2))
+            g.minSupport.getOrElse(2), g.threads.getOrElse(0))
         }
 
       case Some(SplitCommand) =>
@@ -131,7 +133,7 @@ object EntryPoint extends LazyLogging {
               JSM.jsm(input, tau, output,
                 j.algorithm.getOrElse(throw new JsmException("no algorithm specified")),
                 "dense",
-                j.minSupport.getOrElse(2),
+                j.minSupport.getOrElse(2), j.threads.getOrElse(0),
                 j.debug.getOrElse(false), Strategies.votingMajority)
             }
           case _ =>

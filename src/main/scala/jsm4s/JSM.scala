@@ -10,11 +10,11 @@ import jsm4s.property.Properties
 
 object JSM extends LazyLogging {
 
-  def generate(input: InputStream, output: OutputStream, algorithm: String, dataStructure: String, minSupport: Int) = {
+  def generate(input: InputStream, output: OutputStream, algorithm: String, dataStructure: String, minSupport: Int, threads: Int) = {
     val data = FIMI.load(input)
     val sink = new StreamSink(data.header, output)
     val stats = new SimpleCollector
-    val jsm = Algorithm(algorithm, dataStructure, data, minSupport, stats, sink)
+    val jsm = Algorithm(algorithm, dataStructure, data, minSupport, threads, stats, sink)
     jsm.run()
   }
 
@@ -42,7 +42,7 @@ object JSM extends LazyLogging {
   }
 
   def jsm(input: File, tau: File, output: File, algorithm: String, dataStructure: String, minSupport: Int,
-          debug: Boolean, mergeStrategy: (Seq[Properties]=>Properties)) = {
+          threads: Int, debug: Boolean, mergeStrategy: (Seq[Properties]=>Properties)) = {
     val training = timeIt("Loading training examples")(FIMI.load(new FileInputStream(input)))
     val examples = timeIt("Loading tau examples")(FIMI.load(new FileInputStream(tau)))
     val out = new OutputStreamWriter(new FileOutputStream(output))
@@ -51,7 +51,7 @@ object JSM extends LazyLogging {
         throw new JsmException(s"Metadata of data sets doesn't match `${training.header}` vs `${examples.header}`")
       val sink = new ArraySink()
       val stats = new SimpleCollector
-      val algo = Algorithm(algorithm, dataStructure, training, minSupport, stats, sink)
+      val algo = Algorithm(algorithm, dataStructure, training, minSupport, threads, stats, sink)
       timeIt("Generating hypotheses")(algo.run())
       val hypotheses = sink.hypotheses
       val predictor = new Predictor(hypotheses, training.attrs, mergeStrategy)
