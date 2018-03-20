@@ -3,19 +3,27 @@ package jsm4s
 import java.io._
 
 import com.github.tototoshi.csv.CSVReader
-import jsm4s.attribute.{Attribute, EnumAttribute}
-import jsm4s.ds.{BitSet, FcaSet}
-import jsm4s.property.{BinaryProperty, Properties, Property}
+import jsm4s.attribute.{Encoder, EnumEncoder, RowEncoder}
+import jsm4s.ds.{BitSet, FcaSet, IntentFactory}
+import jsm4s.property.{BinaryProperty, Properties, PropertiesEncoder, Property}
 
 import scala.collection.{Seq, SortedMap, SortedSet, mutable}
 import scala.io.Source
 import scala.util.Random
 
 case class FIMI(intents: Seq[FcaSet], props: Seq[Properties], attrs: Int, header:String)
+case class DataSet(intents: Seq[FcaSet], props: Seq[Properties], attrs: Int)
 
 object FIMI {
 
   val regex = """#\s+attributes:\s+(\d+)\s+properties:\s+(\w+)""".r
+
+  def encode(data: Iterable[(Seq[Any],Seq[Any])], intentFactory: IntentFactory, rowEncoder: RowEncoder, propertyEncoder: PropertiesEncoder): DataSet =
+    DataSet(
+      data.map(p => intentFactory.newIntent(rowEncoder(p._1))).toSeq,
+      data.map(p => propertyEncoder(p._2)).toSeq,
+      rowEncoder.size
+    )
 
   def encode(input: InputStream, output: OutputStream, properties: List[Int]) = {
     val reader = CSVReader.open(new InputStreamReader(input))
@@ -57,7 +65,7 @@ object FIMI {
       case (index, values) =>
       if(properties.contains(index)) null
       else {
-        val ret = Attribute.factory(values, propertiesDistribution(index), lastUsed)
+        val ret = Encoder.factory(values, propertiesDistribution(index), lastUsed)
         lastUsed += ret.size
         ret
       }

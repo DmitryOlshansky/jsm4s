@@ -91,4 +91,4 @@ object JSM extends LazyLogging {
   }
 }
 
-class JsmException(message: String) extends Exception(message)
+case class JsmException(message: String) extends Exception(message)

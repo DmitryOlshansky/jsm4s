@@ -2,10 +2,12 @@ package jsm4s.attribute
 
 import java.util
 
+import jsm4s.JsmException
+
 import scala.collection.{SortedMap, mutable}
 
-class ClusteringNumericAttribute(values: SortedMap[String, Int], props: SortedMap[String, Set[String]], offset: Int)
-extends Attribute {
+class ClusteringNumeric(values: SortedMap[String, Int], props: SortedMap[String, Set[String]], offset: Int)
+extends Encoder {
 
   private val numValues = values.map{ pair => (pair._1.toDouble, pair._2) }
 
@@ -63,14 +65,16 @@ extends Attribute {
     }
   }
 
-  override def apply(value: String): Seq[Int] = {
-    val ret = util.Arrays.binarySearch(clustering, value.toDouble)
-    if (ret < 0){
-      val idx = -ret - 1
-      if (idx == 0) Seq(offset)
-      else Seq(offset + idx - 1, offset + idx)
-    }
-    else Seq(ret)
+  override def apply(v: Any): Seq[Int] = v match {
+    case value: String =>
+      val ret = util.Arrays.binarySearch(clustering, value.toDouble)
+      if (ret < 0){
+        val idx = -ret - 1
+        if (idx == 0) Seq(offset)
+        else Seq(offset + idx - 1, offset + idx)
+      }
+      else Seq(ret)
+    case _ => throw JsmException(s"Unsupported type ${v.getClass} for ClusteringNumeric")
   }
 
   override def size: Int = clustering.size + 1

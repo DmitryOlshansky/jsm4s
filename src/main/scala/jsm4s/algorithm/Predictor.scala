@@ -49,6 +49,10 @@ extends LazyLogging {
     val matching = hyps.filter{
       h => h.intent.subsetOf(example, attrs)
     }
+    println(s"Example: $example")
+    for (h <- matching) {
+      println(s"\t${h.intent} ${h.props}")
+    }
     mergeStrategy(matching.map(_.props))
   }
 }

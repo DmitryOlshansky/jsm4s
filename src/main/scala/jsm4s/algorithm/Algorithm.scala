@@ -237,7 +237,7 @@ object Algorithm extends LazyLogging {
   def apply(name: String, dataStructure: String, data: FIMI,
                minSupport: Int, threads: Int, stats:StatsCollector, sink:Sink): Algorithm = {
     val total = data.intents.foldLeft(0L){(a,b) => a + b.size }
-    val density = 100*total / (data.intents.size * data.attrs).toDouble
+    val density = 100.0 * total / (data.intents.size.toDouble * data.attrs)
     logger.info("Context density is {}", density)
     val algo = dataStructure match {
       case "sparse" =>

@@ -1,3 +1,3 @@
 package jsm4s.property
 
-class PropertyException(message: String) extends Exception(message)
+case class PropertyException(message: String) extends Exception(message)
