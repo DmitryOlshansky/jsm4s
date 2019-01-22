@@ -2,7 +2,7 @@ name         := "jsm4s"
 
 organization := "olshansky.me"
 
-scalaVersion := "2.12.3"
+scalaVersion := "2.12.8"
 
 scalacOptions := Seq("-unchecked", "-feature", "-deprecation", "-encoding", "utf8")
 
