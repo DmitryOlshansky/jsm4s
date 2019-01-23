@@ -182,28 +182,28 @@ trait QueueAlgorithm extends Algorithm {
 class ArrayBitCbO(rows: Seq[FcaSet], props: Seq[Properties],
                   attrs: Int, minSupport: Int,
                   stats: StatsCollector, sink: Sink)
-  extends CbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
+  extends CbO(rows, props, attrs, minSupport, stats, sink) with PackedArrayExt with BitInt with IdentityPreprocessor
 
 class ArrayBitPCbO(rows: Seq[FcaSet], props: Seq[Properties],
                    attrs: Int, minSupport: Int, threads: Int,
                    stats: StatsCollector, sink: Sink)
-  extends PCbO(rows, props, attrs, minSupport, threads, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
+  extends PCbO(rows, props, attrs, minSupport, threads, stats, sink) with PackedArrayExt with BitInt with IdentityPreprocessor
 
 
 class ArrayBitDynSortCbO(rows: Seq[FcaSet], props: Seq[Properties],
                          attrs: Int, minSupport: Int,
                          stats: StatsCollector, sink: Sink)
-  extends DynSortCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
+  extends DynSortCbO(rows, props, attrs, minSupport, stats, sink) with PackedArrayExt with BitInt with IdentityPreprocessor
 
 class ArrayBitFCbO(rows: Seq[FcaSet], props: Seq[Properties],
                    attrs: Int, minSupport: Int,
                    stats: StatsCollector, sink: Sink)
-  extends FCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
+  extends FCbO(rows, props, attrs, minSupport, stats, sink) with PackedArrayExt with BitInt with IdentityPreprocessor
 
 class ArrayBitPFCbO(rows: Seq[FcaSet], props: Seq[Properties],
                     attrs: Int, minSupport: Int, threads: Int,
                     stats: StatsCollector, sink: Sink)
-  extends PFCbO(rows, props, attrs, minSupport, threads, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
+  extends PFCbO(rows, props, attrs, minSupport, threads, stats, sink) with PackedArrayExt with BitInt with IdentityPreprocessor
 
 
 class ArraySparseBitCbO(rows: Seq[FcaSet], props: Seq[Properties],
