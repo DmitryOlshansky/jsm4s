@@ -3,16 +3,9 @@ package jsm4s.algorithm
 import java.util.concurrent.{ForkJoinPool, TimeUnit}
 
 import jsm4s.ds.FcaSet
-import jsm4s.property.Properties
 
-import scala.collection.Seq
-
-abstract class GenericFCbO(
-                            rows: Seq[FcaSet], props: Seq[Properties],
-                            attributes: Int, minSupport: Int,
-                            stats: StatsCollector, sink: Sink
-                          )
-  extends Algorithm(rows, props, attributes, minSupport, stats, sink) with QueueAlgorithm {
+abstract class GenericFCbO(context: Context)
+  extends Algorithm(context) with QueueAlgorithm[(FcaSet, FcaSet, Int, Array[FcaSet], Int)] {
 
   var recDepth = 0
 
@@ -54,34 +47,25 @@ abstract class GenericFCbO(
   }
 
   override def perform = {
-    val A = fullExtent
-    val B = rows.fold(fullIntent)((a, b) => a & b) // full intersection
+    val A = ext.full
+    val B = rows.fold(int.full)((a, b) => a & b) // full intersection
     val implied = Array.ofDim[FcaSet]((attributes + 1) * attributes)
-    for (i <- 0 until ((attributes + 1) * attributes)) implied(i) = emptyIntent
+    for (i <- 0 until ((attributes + 1) * attributes)) implied(i) = int.empty
     method(A, B, 0, implied, 0)
   }
 }
 
-abstract class FCbO(rows: Seq[FcaSet], props:Seq[Properties],
-                    attrs: Int, minSupport: Int,
-                    stats: StatsCollector, sink: Sink
-                   )
-  extends GenericFCbO(rows, props, attrs, minSupport, stats, sink) {
-  def processQueue(value: AnyRef): Unit = {
-    val x = value.asInstanceOf[(FcaSet, FcaSet, Int, Array[FcaSet], Int)]
+class FCbO(context: Context)  extends GenericFCbO(context) {
+  def processQueue(x: (FcaSet, FcaSet, Int, Array[FcaSet], Int)): Unit = {
     method(x._1, x._2, x._3, x._4, x._5)
   }
 }
 
-abstract class PFCbO(rows: Seq[FcaSet], props: Seq[Properties],
-                     attrs: Int, minSupport: Int, threads: Int,
-                     stats: StatsCollector, sink: Sink)
-  extends GenericFCbO(rows, props, attrs, minSupport, stats, sink)  {
+class PFCbO(context: Context, threads: Int) extends GenericFCbO(context)  {
 
   private val pool = if (threads == 0) ForkJoinPool.commonPool else new ForkJoinPool(threads)
 
-  override def processQueue(value: AnyRef) = {
-    val tup = value.asInstanceOf[(FcaSet,FcaSet,Int,Array[FcaSet], Int)]
+  override def processQueue(tup: (FcaSet,FcaSet,Int,Array[FcaSet], Int)) = {
     pool.submit(new Runnable {
       override def run(): Unit = method(tup._1, tup._2, tup._3, tup._4, tup._5)
     })

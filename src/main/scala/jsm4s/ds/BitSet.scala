@@ -151,16 +151,16 @@ object BitSet {
   }
 }
 
-trait BitExt extends ExtentFactory {
-  val emptyExtent = BitSet.empty(objects)
-  val fullExtent = BitSet.full(objects)
+class BitExt(val objects: Int) extends ExtentFactory {
+  val empty = BitSet.empty(objects)
+  val full = BitSet.full(objects)
 
-  override def newExtent(seq: Iterable[Int]) = BitSet(seq, objects)
+  override def values(seq: Iterable[Int]) = BitSet(seq, objects)
 }
 
-trait BitInt extends IntentFactory {
-  val emptyIntent = BitSet.empty(attributes)
-  val fullIntent = BitSet.full(attributes)
+class BitInt(val attributes: Int) extends IntentFactory {
+  val empty = BitSet.empty(attributes)
+  val full = BitSet.full(attributes)
 
-  override def newIntent(seq: Iterable[Int]) = BitSet(seq, attributes)
+  override def values(seq: Iterable[Int]) = BitSet(seq, attributes)
 }

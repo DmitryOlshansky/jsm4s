@@ -108,16 +108,16 @@ object SortedArray {
   }
 }
 
-trait ArrayExt extends ExtentFactory {
-  override val emptyExtent = SortedArray.empty
-  override val fullExtent = SortedArray(0.until(objects))
+class ArrayExt(val objects: Int) extends ExtentFactory {
+  override val empty = SortedArray.empty
+  override val full = SortedArray(0.until(objects))
 
-  override def newExtent(seq: Iterable[Int]) = SortedArray(seq)
+  override def values(seq: Iterable[Int]) = SortedArray(seq)
 }
 
-trait ArrayInt extends IntentFactory {
-  override val emptyIntent = SortedArray.empty
-  override val fullIntent = SortedArray(0.until(attributes))
+class ArrayInt(val attributes: Int) extends IntentFactory {
+  override val empty = SortedArray.empty
+  override val full = SortedArray(0.until(attributes))
 
-  override def newIntent(seq: Iterable[Int]) = SortedArray(seq)
+  override def values(seq: Iterable[Int]) = SortedArray(seq)
 }

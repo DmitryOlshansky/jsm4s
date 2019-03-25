@@ -8,9 +8,9 @@ import scala.collection.Iterable
 trait ExtentFactory {
   val objects: Int
 
-  def emptyExtent: FcaSet
+  def empty: FcaSet
 
-  def fullExtent: FcaSet
+  def full: FcaSet
 
-  def newExtent(x: Iterable[Int]): FcaSet
+  def values(x: Iterable[Int]): FcaSet
 }

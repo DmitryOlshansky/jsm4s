@@ -8,9 +8,9 @@ import scala.collection.Iterable
 trait IntentFactory {
   val attributes: Int
 
-  def emptyIntent: FcaSet
+  def empty: FcaSet
 
-  def fullIntent: FcaSet
+  def full: FcaSet
 
-  def newIntent(x: Iterable[Int]): FcaSet
+  def values(x: Iterable[Int]): FcaSet
 }

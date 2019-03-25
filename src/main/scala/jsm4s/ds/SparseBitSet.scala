@@ -231,16 +231,16 @@ object SparseBitSet {
 }
 
 
-trait SparseBitExt extends ExtentFactory {
-  override val emptyExtent = SparseBitSet.empty(objects)
-  override val fullExtent = SparseBitSet.full(objects)
+class SparseBitExt(val objects: Int) extends ExtentFactory {
+  override val empty = SparseBitSet.empty(objects)
+  override val full = SparseBitSet.full(objects)
 
-  override def newExtent(seq: Iterable[Int]) = SparseBitSet(seq)
+  override def values(seq: Iterable[Int]) = SparseBitSet(seq)
 }
 
-trait SparseBitInt extends IntentFactory {
-  override val emptyIntent = SparseBitSet.empty(attributes)
-  override val fullIntent = SparseBitSet.full(attributes)
+class SparseBitInt(val attributes: Int) extends IntentFactory {
+  override val empty = SparseBitSet.empty(attributes)
+  override val full = SparseBitSet.full(attributes)
 
-  override def newIntent(seq: Iterable[Int]) = SparseBitSet(seq)
+  override def values(seq: Iterable[Int]) = SparseBitSet(seq)
 }

@@ -3,12 +3,7 @@ package jsm4s.algorithm
 import jsm4s.ds.FcaSet
 import jsm4s.property.Properties
 
-abstract class DynSortCbO(
-                           rows: Seq[FcaSet], props: Seq[Properties],
-                           attrs: Int, minSupport: Int,
-                           stats: StatsCollector, sink: Sink
-                         )
-  extends Algorithm(rows, props, attrs, minSupport, stats, sink) {
+class DynSortCbO(context: Context) extends Algorithm(context) {
 
     def weightsOf(set: FcaSet, toVisit: Array[Int]) = {
       val weights = Array.ofDim[Int](toVisit.length)
@@ -44,9 +39,9 @@ abstract class DynSortCbO(
     }
 
     override def perform = {
-      val A = fullExtent
-      val B = rows.fold(fullIntent)((a, b) => a & b) // full intersection
-      val visited = emptyIntent
+      val A = ext.full
+      val B = rows.fold(int.full)((a, b) => a & b) // full intersection
+      val visited = int.empty
       method(A, B, visited, 0.until(attributes).toArray)
     }
   }

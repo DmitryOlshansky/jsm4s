@@ -46,12 +46,12 @@ trait SortingPreprocessor extends Preprocessor with IntentFactory {
 
   override def preProcess(intent: FcaSet): FcaSet = {
     initialize()
-    newIntent(intent.map(revMapping))
+    values(intent.map(revMapping))
   }
 
   override def postProcess(intent: FcaSet): FcaSet = {
     initialize()
-    newIntent(intent.map(order))
+    values(intent.map(order))
   }
 }
 
@@ -122,17 +122,29 @@ class ArraySink extends Sink {
   def hypotheses:Seq[Hypothesis] = buffer
 }
 
-abstract class Algorithm(
-                          var rows: Seq[FcaSet], val props: Seq[Properties],
-                          val attributes: Int, val minSupport: Int,
-                          val stats: StatsCollector, val sink: Sink
-                        ) extends Runnable with ExtentFactory with IntentFactory with Preprocessor {
+case class Context(rows: Seq[FcaSet],
+                   props: Seq[Properties],
+                   attributes: Int,
+                   minSupport: Int,
+                   stats: StatsCollector,
+                   sink: Sink,
+                   ext: ExtentFactory,
+                   int: IntentFactory)
 
+abstract class Algorithm(context: Context) {
+  val rows = context.rows
+  val props = context.props
+  val attributes = context.attributes
+  val minSupport = context.minSupport
+  val stats = context.stats
+  val sink = context.sink
+  val ext = context.ext
+  val int = context.int
   val emptyProperties = new Properties(Seq())
 
   // filter on extent-intent pair
   def merge(extent: FcaSet, intent: FcaSet): Properties = {
-    if (props.size == 0) emptyProperties
+    if (props.isEmpty) emptyProperties
     else {
       val properties = extent.map(e => props(e)).reduceLeft((a,b) => a & b)
       properties
@@ -140,18 +152,14 @@ abstract class Algorithm(
   }
 
   def output(extent: FcaSet, intent: FcaSet):Unit = {
-    val postProcessed = this match {
-      case _: IdentityPreprocessor => intent
-      case _ => postProcess(intent)
-    }
-    val props = merge(extent, postProcessed)
+    val props = merge(extent, intent)
     if (!props.empty && extent.size >= minSupport)
-      sink(Hypothesis(postProcessed, props))
+      sink(Hypothesis(intent, props))
   }
 
   def closeConcept(A: FcaSet, y: Int) = {
-    var C = emptyExtent.dup
-    var D = fullIntent.dup
+    var C = ext.empty.dup
+    var D = int.full.dup
     var cnt = 0
     for (i <- A) {
       if (rows(i) contains y) {
@@ -166,72 +174,14 @@ abstract class Algorithm(
   def perform(): Unit
 
   def run(): Unit = {
-    rows = this match {
-      case _: IdentityPreprocessor => rows
-      case _ => rows.map(x => preProcess(x))
-    }
     perform()
     sink.close()
   }
 }
 
-trait QueueAlgorithm extends Algorithm {
-  def processQueue(value: AnyRef): Unit
+trait QueueAlgorithm[T] extends Algorithm {
+  def processQueue(value: T): Unit
 }
-
-class ArrayBitCbO(rows: Seq[FcaSet], props: Seq[Properties],
-                  attrs: Int, minSupport: Int,
-                  stats: StatsCollector, sink: Sink)
-  extends CbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
-
-class ArrayBitPCbO(rows: Seq[FcaSet], props: Seq[Properties],
-                   attrs: Int, minSupport: Int, threads: Int,
-                   stats: StatsCollector, sink: Sink)
-  extends PCbO(rows, props, attrs, minSupport, threads, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
-
-
-class ArrayBitDynSortCbO(rows: Seq[FcaSet], props: Seq[Properties],
-                         attrs: Int, minSupport: Int,
-                         stats: StatsCollector, sink: Sink)
-  extends DynSortCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
-
-class ArrayBitFCbO(rows: Seq[FcaSet], props: Seq[Properties],
-                   attrs: Int, minSupport: Int,
-                   stats: StatsCollector, sink: Sink)
-  extends FCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
-
-class ArrayBitPFCbO(rows: Seq[FcaSet], props: Seq[Properties],
-                    attrs: Int, minSupport: Int, threads: Int,
-                    stats: StatsCollector, sink: Sink)
-  extends PFCbO(rows, props, attrs, minSupport, threads, stats, sink) with ArrayExt with BitInt with IdentityPreprocessor
-
-
-class ArraySparseBitCbO(rows: Seq[FcaSet], props: Seq[Properties],
-                  attrs: Int, minSupport: Int,
-                  stats: StatsCollector, sink: Sink)
-  extends CbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with SparseBitInt with IdentityPreprocessor
-
-class ArraySparseBitPCbO(rows: Seq[FcaSet], props: Seq[Properties],
-                         attrs: Int, minSupport: Int, threads: Int,
-                         stats: StatsCollector, sink: Sink)
-  extends PCbO(rows, props, attrs, minSupport, threads, stats, sink) with ArrayExt with SparseBitInt with IdentityPreprocessor
-
-class ArraySparseBitDynSortCbO(rows: Seq[FcaSet], props: Seq[Properties],
-                         attrs: Int, minSupport: Int,
-                         stats: StatsCollector, sink: Sink)
-  extends DynSortCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with SparseBitInt with IdentityPreprocessor
-
-class ArraySparseBitFCbO(rows: Seq[FcaSet], props: Seq[Properties],
-                   attrs: Int, minSupport: Int,
-                   stats: StatsCollector, sink: Sink)
-  extends FCbO(rows, props, attrs, minSupport, stats, sink) with ArrayExt with SparseBitInt with IdentityPreprocessor
-
-class ArraySparseBitPFCbO(rows: Seq[FcaSet], props: Seq[Properties],
-                         attrs: Int, minSupport: Int, threads: Int,
-                         stats: StatsCollector, sink: Sink)
-  extends PFCbO(rows, props, attrs, minSupport, threads, stats, sink) with ArrayExt with SparseBitInt with IdentityPreprocessor
-
-
 
 object Algorithm extends LazyLogging {
   def apply(name: String, dataStructure: String, data: FIMI,
@@ -239,26 +189,34 @@ object Algorithm extends LazyLogging {
     val total = data.intents.foldLeft(0L){(a,b) => a + b.size }
     val density = 100*total / (data.intents.size * data.attrs).toDouble
     logger.info("Context density is {}", density)
+    val extFactory = new ArrayExt(data.intents.length)
     val algo = dataStructure match {
       case "sparse" =>
+        val intFactory = new SparseBitInt(data.attrs)
         logger.info("Using sparse data-structure")
         val sparseSets = data.intents.map(x => SparseBitSet(x))
+        val context = Context(sparseSets, data.props, data.attrs, minSupport, stats, sink, extFactory, intFactory)
         name match {
-          case "cbo" => new ArraySparseBitCbO(sparseSets, data.props, data.attrs, minSupport, stats, sink)
-          case "fcbo" => new ArraySparseBitFCbO(sparseSets, data.props, data.attrs, minSupport, stats, sink)
-          case "pcbo" => new ArraySparseBitPCbO(sparseSets, data.props, data.attrs, minSupport, threads, stats, sink)
-          case "pfcbo" => new ArraySparseBitPFCbO(sparseSets, data.props, data.attrs, minSupport, threads, stats, sink)
-          case "dynsort-cbo" => new ArraySparseBitDynSortCbO(sparseSets, data.props, data.attrs, minSupport, stats, sink)
+          case "cbo" => new CbO(context)
+          case "fcbo" => new FCbO(context)
+          case "pcbo" => 
+            new PCbO(context, threads)
+          case "pfcbo" =>
+            new PFCbO(context, threads)
+          case "dynsort-cbo" =>
+            new DynSortCbO(context)
           case _ => throw new Exception(s"No algorithm ${name} is supported")
         }
       case "dense" =>
-      logger.info("Using dense data-structure")
+        logger.info("Using dense data-structure")
+        val intFactory = new BitInt(data.attrs)
+        val context = Context(data.intents, data.props, data.attrs, minSupport, stats, sink, extFactory, intFactory)
         name match {
-          case "cbo" => new ArrayBitCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
-          case "fcbo" => new ArrayBitFCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
-          case "pcbo" => new ArrayBitPCbO(data.intents, data.props, data.attrs, minSupport, threads, stats, sink)
-          case "pfcbo" => new ArrayBitPFCbO(data.intents, data.props, data.attrs, minSupport, threads, stats, sink)
-          case "dynsort-cbo" => new ArrayBitDynSortCbO(data.intents, data.props, data.attrs, minSupport, stats, sink)
+          case "cbo" => new CbO(context)
+          case "fcbo" => new FCbO(context)
+          case "pcbo" => new PCbO(context, threads)
+          case "pfcbo" => new PFCbO(context, threads)
+          case "dynsort-cbo" => new DynSortCbO(context)
           case _ => throw new Exception(s"No algorithm ${name} is supported")
         }
     }
