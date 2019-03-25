@@ -42,7 +42,7 @@ object JSM extends LazyLogging {
   }
 
   def jsm(input: File, tau: File, output: File, algorithm: String, dataStructure: String, minSupport: Int,
-          threads: Int, debug: Boolean, mergeStrategy: (Seq[Properties]=>Properties)) = {
+          threads: Int, debug: Boolean, mergeStrategy: Seq[Properties]=>Properties) = {
     val training = timeIt("Loading training examples")(FIMI.load(new FileInputStream(input)))
     val examples = timeIt("Loading tau examples")(FIMI.load(new FileInputStream(tau)))
     val out = new OutputStreamWriter(new FileOutputStream(output))

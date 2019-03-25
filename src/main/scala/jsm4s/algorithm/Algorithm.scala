@@ -5,55 +5,10 @@ import java.io.{ByteArrayOutputStream, OutputStream, OutputStreamWriter}
 import com.typesafe.scalalogging.LazyLogging
 import jsm4s.FIMI
 import jsm4s.ds._
+import jsm4s.processing.SortingProcessor
 import jsm4s.property.{Properties, Property}
 
 import scala.collection.mutable
-
-trait Preprocessor {
-  var rows: Seq[FcaSet]
-  val objects = rows.size
-  val attributes: Int
-
-  def preProcess(intent: FcaSet): FcaSet
-
-  def postProcess(intent: FcaSet): FcaSet
-}
-
-trait IdentityPreprocessor extends Preprocessor {
-  override def preProcess(intent: FcaSet): FcaSet = intent
-
-  override def postProcess(intent: FcaSet): FcaSet = intent
-}
-
-trait SortingPreprocessor extends Preprocessor with IntentFactory {
-  var initialized: Boolean = false
-  var order: Array[Int] = null
-  var revMapping: Array[Int] = null
-
-  def initialize() = {
-    if (!initialized) {
-      val weights = Array.ofDim[Int](attributes)
-      for (r <- rows; e <- r) {
-        weights(e) += 1
-      }
-      order = weights.zipWithIndex.sortBy(_._1).map(_._2)
-      revMapping = Array.ofDim[Int](attributes)
-      for (i <- 0 until attributes) revMapping(order(i)) = i
-      initialized = true
-    }
-  }
-
-
-  override def preProcess(intent: FcaSet): FcaSet = {
-    initialize()
-    values(intent.map(revMapping))
-  }
-
-  override def postProcess(intent: FcaSet): FcaSet = {
-    initialize()
-    values(intent.map(order))
-  }
-}
 
 trait StatsCollector {
   def onClosure(): Unit
@@ -131,6 +86,21 @@ case class Context(rows: Seq[FcaSet],
                    ext: ExtentFactory,
                    int: IntentFactory)
 
+object Context {
+  def sorted(rows: Seq[FcaSet],
+             props: Seq[Properties],
+             attributes: Int,
+             minSupport: Int,
+             stats: StatsCollector,
+             sink: Sink,
+             ext: ExtentFactory,
+             int: IntentFactory): Context = {
+    val proc = new SortingProcessor(rows, attributes, sink, int)
+    val sorted = rows.map(intent => int.values(proc.preProcess(intent)))
+    Context(sorted, props, attributes, minSupport, stats, proc, ext, int)
+  }
+}
+
 abstract class Algorithm(context: Context) {
   val rows = context.rows
   val props = context.props
@@ -190,35 +160,27 @@ object Algorithm extends LazyLogging {
     val density = 100*total / (data.intents.size * data.attrs).toDouble
     logger.info("Context density is {}", density)
     val extFactory = new ArrayExt(data.intents.length)
-    val algo = dataStructure match {
+    val context = dataStructure match {
       case "sparse" =>
         val intFactory = new SparseBitInt(data.attrs)
         logger.info("Using sparse data-structure")
         val sparseSets = data.intents.map(x => SparseBitSet(x))
-        val context = Context(sparseSets, data.props, data.attrs, minSupport, stats, sink, extFactory, intFactory)
-        name match {
-          case "cbo" => new CbO(context)
-          case "fcbo" => new FCbO(context)
-          case "pcbo" => 
-            new PCbO(context, threads)
-          case "pfcbo" =>
-            new PFCbO(context, threads)
-          case "dynsort-cbo" =>
-            new DynSortCbO(context)
-          case _ => throw new Exception(s"No algorithm ${name} is supported")
-        }
+        Context.sorted(sparseSets, data.props, data.attrs, minSupport, stats, sink, extFactory, intFactory)
       case "dense" =>
         logger.info("Using dense data-structure")
         val intFactory = new BitInt(data.attrs)
-        val context = Context(data.intents, data.props, data.attrs, minSupport, stats, sink, extFactory, intFactory)
-        name match {
-          case "cbo" => new CbO(context)
-          case "fcbo" => new FCbO(context)
-          case "pcbo" => new PCbO(context, threads)
-          case "pfcbo" => new PFCbO(context, threads)
-          case "dynsort-cbo" => new DynSortCbO(context)
-          case _ => throw new Exception(s"No algorithm ${name} is supported")
-        }
+        Context.sorted(data.intents, data.props, data.attrs, minSupport, stats, sink, extFactory, intFactory)
+    }
+    val algo = name match {
+      case "cbo" => new CbO(context)
+      case "fcbo" => new FCbO(context)
+      case "pcbo" =>
+        new PCbO(context, threads)
+      case "pfcbo" =>
+        new PFCbO(context, threads)
+      case "dynsort-cbo" =>
+        new DynSortCbO(context)
+      case _ => throw new Exception(s"No algorithm ${name} is supported")
     }
     logger.info("Using {} algorithm", name)
     algo
