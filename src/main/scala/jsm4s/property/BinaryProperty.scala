@@ -26,7 +26,7 @@ object BinaryProperty{
     new BinaryProperty(props.foldLeft(3)((a, x) => a & x.value))
 
   def factory(values: SortedSet[String]):Property.Factory = {
-    if (values.size != 2) throw  new PropertyException(s"Illegal number of values for bianry property `${values.size}")
+    if (values.size != 2) throw  new PropertyException(s"Illegal number of values for binary property `${values.size}")
     val first = values.head
     (x) => {
       if (x == first) new BinaryProperty(1)

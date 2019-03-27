@@ -2,7 +2,7 @@ package jsm4s.property
 
 import scala.collection.mutable
 
-case class Properties(val value: Seq[Property]){
+case class Properties(value: Seq[Property]){
 
   def &(props: Properties): Properties = Properties(value.zip(props.value).map(p => p._1 & p._2))
 

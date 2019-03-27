@@ -7,6 +7,7 @@ import jsm4s.Utils._
 import jsm4s.algorithm.Strategies.MergeStrategy
 
 import scala.collection.mutable
+import scala.util.Random
 
 // Ladder overview:
 // first element - hypotheses that contain given attribute
@@ -35,7 +36,7 @@ class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, val mergeStrate
           weight(i) += 1
           total += 1
         }
-        i += 3
+        i += 7
       }
     }
     val sorted = timeIt("Weights sorting")(weight.zipWithIndex.filter(_._1 > threshold).sortWith((a, b) => a._1 < b._1))
@@ -58,7 +59,11 @@ class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, val mergeStrate
 
   private val tree = buildLadder
 
-  def search(example: FcaSet): Seq[Hypothesis] = tree.ladder.flatMap(p => if (example.contains(p._1)) p._2 else Seq.empty) ++ tree.rem
+  def search(example: FcaSet): Seq[Hypothesis] = {
+    val collected = tree.ladder.flatMap(p => if (example.contains(p._1)) p._2 else Seq.empty)
+    if (tree.rem.nonEmpty) collected ++ tree.rem
+    else collected
+  }
 
   def apply(example: FcaSet):Properties = {
     val hyps = search(example)
