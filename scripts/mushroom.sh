@@ -15,7 +15,7 @@ java -jar $JAR split 8:2 mushroom.dat training.dat verify.dat
 echo "---"
 java -jar $JAR tau verify.dat tau.dat
 echo "---"
-java -jar $JAR generate -apcbo -m model.dat training.dat
+java -jar $JAR generate -m model.dat training.dat
 echo "---"
 java -jar $JAR predict -m model.dat -o predictions.dat tau.dat
 echo "---"

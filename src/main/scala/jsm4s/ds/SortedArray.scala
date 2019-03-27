@@ -20,7 +20,7 @@ class SortedArray(var table: Array[Int], var tsize: Int) extends FcaSet with Ite
     }
   }
 
-  override def foreach[U](f: (Int) => U): Unit = {
+  override def foreach[U](f: Int => U): Unit = {
     var i = 0
     while (i < tsize) {
       f(table(i))
