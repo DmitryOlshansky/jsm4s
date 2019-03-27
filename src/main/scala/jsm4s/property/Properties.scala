@@ -4,7 +4,13 @@ import scala.collection.mutable
 
 case class Properties(value: Seq[Property]){
 
-  def &(props: Properties): Properties = Properties(value.zip(props.value).map(p => p._1 & p._2))
+  def &(props: Properties): Properties = {
+    val result = Array.ofDim[Property](value.size)
+    for (i <- result.indices) {
+      result(i) = value(i) & props.value(i)
+    }
+    Properties(result)
+  }
 
   def empty = !value.exists(p => !p.empty)
 

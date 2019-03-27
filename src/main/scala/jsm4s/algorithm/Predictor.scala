@@ -16,7 +16,7 @@ import scala.util.Random
 // ...
 // ladder are constructed by going this way from less popular to more popular attributes
 //
-case class Ladder(ladder: Seq[(Int, Seq[Hypothesis])], rem: Seq[Hypothesis])
+case class Ladder(steps: Seq[(Int, Seq[Hypothesis])], rem: Seq[Hypothesis])
 
 class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, val mergeStrategy: MergeStrategy)
   extends LazyLogging {
@@ -57,17 +57,17 @@ class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, val mergeStrate
     }
   }
 
-  private val tree = buildLadder
+  private val ladder = buildLadder
 
   def search(example: FcaSet): Seq[Hypothesis] = {
-    val collected = tree.ladder.flatMap(p => if (example.contains(p._1)) p._2 else Seq.empty)
-    if (tree.rem.nonEmpty) collected ++ tree.rem
+    val collected = ladder.steps.flatMap(p => if (example.contains(p._1)) p._2 else Seq.empty)
+    if (ladder.rem.nonEmpty) collected ++ ladder.rem
     else collected
   }
 
   def apply(example: FcaSet):Properties = {
     val hyps = search(example)
-    val matching = hyps.filter{
+    val matching = hyps.filter {
       h => h.intent.subsetOf(example, attrs)
     }
     mergeStrategy(matching.map(_.props))
