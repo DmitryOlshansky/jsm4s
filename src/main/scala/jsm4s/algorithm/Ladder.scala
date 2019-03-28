@@ -1,0 +1,60 @@
+package jsm4s.algorithm
+
+import com.typesafe.scalalogging.LazyLogging
+import jsm4s.Utils.timeIt
+import jsm4s.ds.FcaSet
+
+import scala.collection.mutable
+
+// Ladder overview:
+// first element - hypotheses that contain given attribute
+// second - that contain given attribute but not the one from first split
+// third - doesn't contain 1 & 2 but contains yet another attribute
+// ...
+// ladder is constructed by going this way from less popular to more popular attributes
+//
+class Ladder[T](private val steps: Seq[(Int, Seq[T])], private val rem: Seq[T]) {
+  def search(example: FcaSet): Seq[T] = {
+    val collected = steps.flatMap(p => if (example.contains(p._1)) p._2 else Seq.empty)
+    if (rem.nonEmpty) collected ++ rem
+    else collected
+  }
+}
+
+object Ladder extends LazyLogging {
+  def apply[T : HasIntent](hypotheses: Seq[T], attrs: Int): Ladder[T] = {
+    val extractor = implicitly[HasIntent[T]]
+    val portion = 0.05 // exclude all attributes that sum up to less then `portion` of total
+    val threshold = 20 // minimum weight to consider, trims down on fruitless computation
+    var remaining = hypotheses
+    val weight = Array.ofDim[Int](attrs)
+    var total = 0.0
+    timeIt("Weights calculation") {
+      var i = 0
+      while(i < hypotheses.size) {
+        val h = hypotheses(i)
+        for (i <- extractor.intent(h)) {
+          weight(i) += 1
+          total += 1
+        }
+        i += 7
+      }
+    }
+    val sorted = timeIt("Weights sorting")(weight.zipWithIndex.filter(_._1 > threshold).sortWith((a, b) => a._1 < b._1))
+    val cumulative = sorted.map(_._1 / total).scanLeft(0.0)((acc, x) => acc + x)
+    val significant = cumulative.indexWhere(_ > portion)
+    val topAttrs = sorted.slice(significant, sorted.length).map(_._2)
+    timeIt("Ladder building") {
+      val buf = mutable.Buffer[(Int, Seq[T])]()
+      for (j <- topAttrs) {
+        if (remaining.nonEmpty) {
+          val parts = remaining.partition { x => extractor.intent(x).contains(j) }
+          buf += j -> parts._1
+          remaining = parts._2
+        }
+      }
+      logger.info("Reminder size is {}", remaining.size)
+      new Ladder(buf, remaining)
+    }
+  }
+}

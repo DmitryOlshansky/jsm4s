@@ -67,10 +67,13 @@ extends Attribute {
     val ret = util.Arrays.binarySearch(clustering, value.toDouble)
     if (ret < 0){
       val idx = -ret - 1
-      if (idx == 0) Seq(offset)
+      if (idx == 0) Seq(offset, offset + 1)
       else Seq(offset + idx - 1, offset + idx)
     }
-    else Seq(ret)
+    else {
+      if (ret == 0) Seq(offset, offset + 1)
+      else Seq(offset + ret - 1, offset + ret)
+    }
   }
 
   override def size: Int = clustering.size + 1

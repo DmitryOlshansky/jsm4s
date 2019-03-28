@@ -28,8 +28,13 @@ object TauCommand extends Subcommand("tau") {
 object PredictCommand extends Subcommand("predict") {
   val model = opt[File](short = 'm', descr = "File with model that contains hypotheses")
   val output = opt[File](short = 'o', descr = "Output file with predictions")
-  val debug = opt[Boolean](short = 'd', descr = "Debug mode - output hypotheses for each example")
   val tau = trailArg[File](descr = "File with Tau examples to predict")
+}
+
+object RefineCommand extends Subcommand("refine") {
+  val model = opt[File](short = 'm', descr = "File with model that contains hypotheses")
+  val output = opt[File](short = 'o', descr = "Output file with refined model")
+  val crossValidation = trailArg[File](descr = "File with non-tau examples for cross-validation")
 }
 
 object GenerateCommand extends Subcommand("generate") {
@@ -47,7 +52,6 @@ object JsmCommand extends Subcommand("jsm") {
   val minSupport = opt[Int](name = "support", descr = "Minimum number of objects to support hypothesis")
   val ds = opt[String](name = "data-structure", descr = "Data structures to use : dense or sparse")
   val output = opt[File](short = 'o', descr = "Output file with predictions")
-  val debug = opt[Boolean](short = 'd', descr = "Debug mode - output hypotheses for each example")
   val input = trailArg[File]()
   val tau = trailArg[File](descr = "File with Tau examples to predict")
 }
@@ -63,6 +67,7 @@ class Config(arguments: Seq[String]) extends ScallopConf(arguments) {
   addSubcommand(TauCommand)
   addSubcommand(GenerateCommand)
   addSubcommand(PredictCommand)
+  addSubcommand(RefineCommand)
   addSubcommand(JsmCommand)
   addSubcommand(StatsCommand)
   verify()
@@ -120,7 +125,17 @@ object EntryPoint extends LazyLogging {
         (r.model.toOption, r.tau.toOption, r.output.toOption) match {
           case (Some(model), Some(tau), Some(output)) =>
             timeIt("Prediction in total") {
-              JSM.predict(model, tau, output, r.debug.getOrElse(false), Strategies.votingMajority)
+              JSM.predict(model, tau, output, Strategies.votingMajority)
+            }
+          case _ =>
+            logger.error("Too few arguments to predict command")
+        }
+      case Some(RefineCommand) =>
+        val r = RefineCommand
+        (r.model.toOption, r.crossValidation.toOption, r.output.toOption) match {
+          case (Some(model), Some(crossValidation), Some(output)) =>
+            timeIt("Refinement in total") {
+              JSM.refine(model, crossValidation, output, Strategies.votingMajority)
             }
           case _ =>
             logger.error("Too few arguments to predict command")
@@ -134,7 +149,7 @@ object EntryPoint extends LazyLogging {
                 j.algorithm.getOrElse(throw new JsmException("no algorithm specified")),
                 "dense",
                 j.minSupport.getOrElse(2), j.threads.getOrElse(0),
-                j.debug.getOrElse(false), Strategies.votingMajority)
+                Strategies.votingMajority)
             }
           case _ =>
             logger.error("Too few arguments to jsm command")
