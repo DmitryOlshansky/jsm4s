@@ -1,23 +1,18 @@
 #!/bin/bash
-TEMP=`mktemp`
-tail -F $TEMP &
-JAR=`sbt assembly 2>&1 | tee $TEMP | grep -oP "(?<=Packaging\s|Assembly up to date:\s)([/A-Za-z0-9.-]+)"`
-kill $!
-
-if [ "x$JAR" == "x" ] ; then
-	echo "Failed to assemble the JAR"
-	exit 1
-fi
-
-echo "---"
-java -jar $JAR encode -p 14 data/adult.csv adult.dat
-echo "---"
-java -jar $JAR split 8:2 adult.dat training.dat verify.dat
-echo "---"
-java -jar $JAR tau verify.dat tau.dat
-echo "---"
-java -jar $JAR generate -m model.dat training.dat
-echo "---"
-java -jar $JAR predict -m model.dat -o predictions.dat tau.dat
-echo "---"
-java -jar $JAR stats verify.dat predictions.dat
+DATASET=adult
+PROPERTY=14
+BASEDIR=$(dirname $0)/..
+CMD=$BASEDIR/target/universal/stage/bin/jsm-cli
+sbt stage 2>&1
+echo "--- Encoding of CSV"
+$CMD encode -p $PROPERTY data/$DATASET.csv $DATASET.dat
+echo "--- Randomized split of dataset"
+$CMD split 8:2 $DATASET.dat $DATASET-training.dat $DATASET-verify.dat
+echo "--- Produce dataset with hidden value out of verify dataset"
+$CMD tau $DATASET-verify.dat $DATASET-tau.dat
+echo "--- Generate model"
+$CMD generate -m $DATASET-model.dat $DATASET-training.dat
+echo "--- Run predictions on file with tau properties"
+$CMD predict -m $DATASET-model.dat -o $DATASET-predictions.dat tau.dat
+echo "--- Calculate basic stats on predictions"
+$CMD stats $DATASET-verify.dat $DATASET-predictions.dat

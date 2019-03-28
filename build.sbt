@@ -19,6 +19,8 @@ enablePlugins(GitVersioning)
 
 enablePlugins(GitBranchPrompt)
 
+enablePlugins(JavaAppPackaging)
+
 git.useGitDescribe := true
 
-assemblyJarName in assembly := "jsm4s-" + version.value + ".jar"
+

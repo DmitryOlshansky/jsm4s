@@ -7,19 +7,18 @@ import jsm4s.Utils._
 import jsm4s.algorithm.Strategies.MergeStrategy
 
 import scala.collection.mutable
-import scala.util.Random
 
 // Ladder overview:
 // first element - hypotheses that contain given attribute
 // second - that contain given attribute but not the one from first split
 // third - doesn't contain 1 & 2 but contains yet another attribute
 // ...
-// ladder are constructed by going this way from less popular to more popular attributes
+// ladder is constructed by going this way from less popular to more popular attributes
 //
 case class Ladder(steps: Seq[(Int, Seq[Hypothesis])], rem: Seq[Hypothesis])
 
 class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, val mergeStrategy: MergeStrategy)
-  extends LazyLogging {
+  extends (FcaSet => Properties) with LazyLogging {
 
 
   private def buildLadder: Ladder = {
@@ -65,7 +64,7 @@ class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, val mergeStrate
     else collected
   }
 
-  def apply(example: FcaSet):Properties = {
+  def apply(example: FcaSet): Properties = {
     val hyps = search(example)
     val matching = hyps.filter {
       h => h.intent.subsetOf(example, attrs)

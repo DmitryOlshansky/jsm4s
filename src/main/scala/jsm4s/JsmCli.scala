@@ -68,7 +68,7 @@ class Config(arguments: Seq[String]) extends ScallopConf(arguments) {
   verify()
 }
 
-object EntryPoint extends LazyLogging {
+object JsmCli extends LazyLogging {
 
   def main(args: Array[String]) = {
     val config = new Config(args)
