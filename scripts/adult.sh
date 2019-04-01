@@ -13,6 +13,6 @@ $CMD tau $DATASET-verify.dat $DATASET-tau.dat
 echo "--- Generate model"
 $CMD generate -m $DATASET-model.dat $DATASET-training.dat
 echo "--- Run predictions on file with tau properties"
-$CMD predict -m $DATASET-model.dat -o $DATASET-predictions.dat tau.dat
+$CMD predict -m $DATASET-model.dat -o $DATASET-predictions.dat $DATASET-tau.dat
 echo "--- Calculate basic stats on predictions"
 $CMD stats $DATASET-verify.dat $DATASET-predictions.dat

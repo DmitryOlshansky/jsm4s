@@ -3,10 +3,10 @@ package jsm4s
 import java.io._
 
 import com.typesafe.scalalogging.LazyLogging
-import jsm4s.algorithm._
 import jsm4s.Utils._
 import jsm4s.algorithm.Strategies.MergeStrategy
-import jsm4s.property.Properties
+import jsm4s.algorithm._
+import jsm4s.property.Property
 
 object JSM extends LazyLogging {
 
@@ -42,7 +42,7 @@ object JSM extends LazyLogging {
   }
 
   def jsm(input: File, tau: File, output: File, algorithm: String, dataStructure: String, minSupport: Int,
-          threads: Int, debug: Boolean, mergeStrategy: Seq[Properties]=>Properties) = {
+          threads: Int, debug: Boolean, mergeStrategy: Seq[Property]=>Property) = {
     val training = timeIt("Loading training examples")(FIMI.load(new FileInputStream(input)))
     val examples = timeIt("Loading tau examples")(FIMI.load(new FileInputStream(tau)))
     val out = new OutputStreamWriter(new FileOutputStream(output))
@@ -79,7 +79,6 @@ object JSM extends LazyLogging {
     if (valid.props.exists(p => p.tau))
       throw new JsmException(s"Presence of tau examples in verification data sets (swapped the arguments?)")
 
-    val attrs = valid.attrs
     val pairs = valid.props.zip(predicted.props)
     val correct = pairs.count { case (a, b) => a == b }
     val unknown = predicted.props.count { x => x.tau }

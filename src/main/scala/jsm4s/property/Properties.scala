@@ -2,12 +2,13 @@ package jsm4s.property
 
 import scala.collection.mutable
 
-case class Properties(value: Seq[Property]){
+case class Properties(value: Seq[Property]) extends Property {
 
-  def &(props: Properties): Properties = {
-    val result = Array.ofDim[Property](value.size)
+  override def &(props: Property): Properties = {
+    val rhs = props.asInstanceOf[Properties].value
+    val result = Array.ofDim[Property](rhs.size)
     for (i <- result.indices) {
-      result(i) = value(i) & props.value(i)
+      result(i) = value(i) & rhs(i)
     }
     Properties(result)
   }
@@ -19,11 +20,12 @@ case class Properties(value: Seq[Property]){
   def tau: Boolean = value.nonEmpty && !value.exists(p => !p.tau)
 
   override def toString = value.mkString(" ")
+
 }
 
 object Properties {
   type TauFactory = () => Properties
-  type Factory = String => Properties
+  type Factory = String => Property
 
   private def parse(onBinary:()=>Unit, onLevel:(Int)=>Unit)(description: String) = {
     var i = 0
@@ -50,22 +52,24 @@ object Properties {
     val factories = mutable.Buffer[Property.Factory]()
     parse(
       () => factories += BinaryProperty.loader,
-      (levels) => factories += LevelProperty.loader(levels)
+      levels => factories += LevelProperty.loader(levels)
     )(description)
-    (x) => {
+    x => {
       val props = x.split(" ").zipWithIndex.map { pair =>
         factories(pair._2)(pair._1)
       }
-      new Properties(props)
+      if (props.length == 1) props(0)
+      else new Properties(props)
     }
   }
 
-  def tau(description: String):Properties = {
+  def tau(description: String):Property = {
     val properties = mutable.Buffer[Property]()
     parse(
-      () => properties += BinaryProperty.tau,
-      (levels) => properties += LevelProperty.tau(levels)
+      () => properties += BinaryProperty.Tau,
+      levels => properties += LevelProperty.tau(levels)
     )(description)
-    new Properties(properties)
+    if (properties.length == 1) properties(0)
+    else new Properties(properties)
   }
 }

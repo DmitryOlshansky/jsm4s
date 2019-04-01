@@ -5,25 +5,25 @@ import org.scalatest._
 class TestProperty extends WordSpec with Matchers {
   "Binary properties" should {
     "conflict if of opposite signs" in {
-      val pos = new BinaryProperty(1)
-      val neg = new BinaryProperty(2)
+      val pos = BinaryProperty.Positive
+      val neg = BinaryProperty.Negative
       pos.positive shouldBe true
       neg.negative shouldBe true
-      BinaryProperty.intersection(pos, neg).empty shouldBe true
+      (pos & neg).empty shouldBe true
     }
 
     "tau intersected with other properties gives the other property" in {
-      val pos = new BinaryProperty(1)
-      val neg = new BinaryProperty(2)
-      val tau = new BinaryProperty(3)
+      val pos = BinaryProperty.Positive
+      val neg = BinaryProperty.Negative
+      val tau = BinaryProperty.Tau
       (tau & pos) shouldEqual pos
       (tau & neg) shouldEqual neg
     }
 
     "self intersection is idempotent" in {
-      val pos = new BinaryProperty(1)
-      val neg = new BinaryProperty(2)
-      val tau = new BinaryProperty(3)
+      val pos = BinaryProperty.Positive
+      val neg = BinaryProperty.Negative
+      val tau = BinaryProperty.Tau
       (tau & tau) shouldEqual tau
       (neg & neg) shouldEqual neg
       (pos & pos) shouldEqual pos
@@ -39,7 +39,7 @@ class TestProperty extends WordSpec with Matchers {
     }
 
     "factory creates property on correct input" in {
-      BinaryProperty.loader("1") shouldEqual  new BinaryProperty(1)
+      BinaryProperty.loader("1") shouldEqual  BinaryProperty.Positive
     }
   }
 

@@ -2,7 +2,7 @@ package jsm4s.algorithm
 
 import com.typesafe.scalalogging.LazyLogging
 import jsm4s.ds.FcaSet
-import jsm4s.property.Properties
+import jsm4s.property.Property
 import jsm4s.Utils._
 import jsm4s.algorithm.Strategies.MergeStrategy
 
@@ -18,11 +18,11 @@ import scala.collection.mutable
 case class Ladder(steps: Seq[(Int, Seq[Hypothesis])], rem: Seq[Hypothesis])
 
 class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, val mergeStrategy: MergeStrategy)
-  extends (FcaSet => Properties) with LazyLogging {
+  extends (FcaSet => Property) with LazyLogging {
 
 
   private def buildLadder: Ladder = {
-    val portion = 0.05 // exclude all attributes that sum up to less then `portion` of total
+    val portion = 0.01 // exclude all attributes that sum up to less then `portion` of total
     val threshold = 20 // minimum weight to consider, trims down on fruitless computation
     var remaining = hypotheses
     val weight = Array.ofDim[Int](attrs)
@@ -64,7 +64,7 @@ class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, val mergeStrate
     else collected
   }
 
-  def apply(example: FcaSet): Properties = {
+  def apply(example: FcaSet): Property = {
     val hyps = search(example)
     val matching = hyps.filter {
       h => h.intent.subsetOf(example, attrs)

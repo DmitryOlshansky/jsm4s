@@ -11,7 +11,7 @@ import scala.collection.{Seq, SortedMap, SortedSet, mutable}
 import scala.io.Source
 import scala.util.Random
 
-case class FIMI(intents: Seq[FcaSet], props: Seq[Properties], attrs: Int, header:String)
+case class FIMI(intents: Seq[FcaSet], props: Seq[Property], attrs: Int, header:String)
 
 object FIMI {
 
@@ -136,16 +136,13 @@ object FIMI {
     val factory = Properties.loader(propertyDescr)
     val attrs = attrsDescr.toInt
     val intents = mutable.Buffer[FcaSet]()
-    val properties = mutable.Buffer[Properties]()
+    val properties = mutable.Buffer[Property]()
 
     for (line <- lines) {
       val parts = line.split(" \\| ")
       val attrsIterable = parts(0).split(" ").map(_.toInt)
       intents += BitSet(attrsIterable, attrs)
-      if (parts.size == 1)
-        properties += new Properties(Seq())
-      else
-        properties += factory(parts(1))
+      properties += factory(parts(1))
     }
     FIMI(intents, properties, attrs, header)
   }

@@ -1,33 +1,27 @@
 package jsm4s.algorithm
 
-import jsm4s.property.{BinaryProperty, Properties, Property}
+import jsm4s.property.{BinaryProperty, NullProperty, Properties, Property}
 
 import scala.collection.mutable
 
 object Strategies {
 
-  type MergeStrategy = Seq[Properties] => Properties
+  type MergeStrategy = Seq[Property] => Property
 
-  def votingMajority(seq: Seq[Properties]): Properties = {
-    if (seq.isEmpty) Properties(Seq.empty)
-    else if (seq.head.value.head.isInstanceOf[BinaryProperty]) {
-      val len = seq.head.size
-      val votes = Array.fill(len)(0)
-      seq.foreach {
-        case Properties(props) =>
-          for (i <- props.indices) {
-            if (props(i).asInstanceOf[BinaryProperty].positive) votes(i) += 1
-            else votes(i) -= 1
-          }
-      }
-      Properties(votes.map { x =>
-        if(x > 0) new BinaryProperty(1)
-        else if (x < 0) new BinaryProperty(2)
-        else new BinaryProperty(3)
-      })
-    }
-    else { // generic property code
-      val len = seq.head.size
+  def votingMajority(seq: Seq[Property]): Property = {
+    if (seq.isEmpty) NullProperty
+    else seq.head match {
+      case _: BinaryProperty  =>
+        var votes = 0
+        for(i <- seq.indices) {
+          if (seq(i).asInstanceOf[BinaryProperty].positive) votes += 1
+          else votes -= 1
+        }
+        if (votes > 0) BinaryProperty.Positive
+        else if(votes == 0) BinaryProperty.Tau
+        else BinaryProperty.Negative
+    case head: Properties => // generic properties code
+      val len = head.size
       val votes = Array.fill(len)(mutable.Map[Property, Int]())
       seq.foreach {
         case Properties(props) =>

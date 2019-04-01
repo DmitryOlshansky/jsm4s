@@ -3,25 +3,21 @@ package me.olshansky
 import java.io.FileInputStream
 
 import com.typesafe.scalalogging.LazyLogging
-import jsm4s.JSM.logger
-import jsm4s.{FIMI, JSM}
+import jsm4s.FIMI
+import jsm4s.Utils._
 import jsm4s.algorithm._
 import jsm4s.ds.FcaSet
-import jsm4s.property.Properties
-import jsm4s.Utils._
-
-import scala.collection.mutable
+import jsm4s.property.Property
 import scala.util.Random
 
-class BaggedPredictor(private val predictors: Seq[Predictor]) extends (FcaSet => Properties) {
-  def apply(intent: FcaSet): Properties = {
-    val votes = mutable.Map[Properties, Int]()
+class BaggedPredictor(private val predictors: Seq[Predictor]) extends (FcaSet => Property) {
+  override def apply(intent: FcaSet): Property = {
     predictors.map(_(intent)).groupBy(id => id).maxBy(_._2.size)._1
   }
 }
 
 object Script extends App with LazyLogging {
-  val dataset = "adult"
+  val dataset = "mushroom"
   val folds = 8
   val algo = "pfcbo"
 

@@ -52,7 +52,7 @@ class StreamSink(header: String, val out: OutputStream) extends Sink {
   writer.write(header + "\n")
 
   override def apply(h: Hypothesis) = {
-    val str = h.intent.mkString(" ") + h.props.value.mkString(" | ", " ", "\n")
+    val str = h.intent.mkString(" ") + " | " + h.props.toString + "\n"
     writer.synchronized {
       writer.write(str)
     }
@@ -78,7 +78,7 @@ class ArraySink extends Sink {
 }
 
 case class Context(rows: Seq[FcaSet],
-                   props: Seq[Properties],
+                   props: Seq[Property],
                    attributes: Int,
                    minSupport: Int,
                    stats: StatsCollector,
@@ -88,7 +88,7 @@ case class Context(rows: Seq[FcaSet],
 
 object Context {
   def sorted(rows: Seq[FcaSet],
-             props: Seq[Properties],
+             props: Seq[Property],
              attributes: Int,
              minSupport: Int,
              stats: StatsCollector,
@@ -113,7 +113,7 @@ abstract class Algorithm(context: Context) {
   val emptyProperties = new Properties(Seq())
 
   // filter on extent-intent pair
-  def merge(extent: FcaSet, intent: FcaSet): Properties = {
+  def merge(extent: FcaSet, intent: FcaSet): Property = {
     if (props.isEmpty) emptyProperties
     else {
       val properties = extent.map(e => props(e)).reduceLeft((a,b) => a & b)
@@ -122,9 +122,11 @@ abstract class Algorithm(context: Context) {
   }
 
   def output(extent: FcaSet, intent: FcaSet):Unit = {
-    val props = merge(extent, intent)
-    if (!props.empty && extent.size >= minSupport)
-      sink(Hypothesis(intent, props))
+    if (extent.size >= minSupport) {
+      val props = merge(extent, intent)
+      if (!props.empty)
+        sink(Hypothesis(intent, props))
+    }
   }
 
   def closeConcept(A: FcaSet, y: Int) = {
