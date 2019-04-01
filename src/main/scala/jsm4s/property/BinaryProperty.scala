@@ -1,8 +1,8 @@
 package jsm4s.property
 
-import scala.collection.SortedSet
+import jsm4s.Utils.ensure
 
-trait BinaryProperty extends Property {
+sealed trait BinaryProperty extends Property {
   def positive: Boolean
 
   def negative: Boolean
@@ -73,24 +73,29 @@ object BinaryProperty {
     override def toString: String = "3"
   }
 
-
-  def factory(values: SortedSet[String]):Property.Factory = {
-    if (values.size != 2) throw  new PropertyException(s"Illegal number of values for binary property `${values.size}")
+  class Factory(values: Seq[String]) extends PropertyFactory {
     val first = values.head
-    (x) => {
-      if (x == first) Positive
-      else Negative
-    }
-  }
+    val last = values.last
+    ensure(values.size == 2, new PropertyException(s"Illegal number of values for binary property: ${values.size}"))
 
-  def loader:Property.Factory = x => {
-    val value = if(x.isEmpty) 0 else x.toInt
-    if (value < 0 || value > 3) throw new PropertyException(s"illegal value for boolean property `$value`")
-    value match {
-      case 0 => Empty
-      case 1 => Positive
-      case 2 => Negative
-      case 3 => Tau
+    override def encode(value: String) = value match {
+      case x if x == first => Positive
+      case x if x == last => Negative
+      case "?" => Tau
+      case "*" => Empty
+      case value => throw new PropertyException(s"Illegal value for binary property `$value`")
     }
+
+    override def decode(prop: Property): String = prop match {
+      case Positive => first
+      case Negative => last
+      case Tau => "?"
+      case Empty => "*"
+    }
+
+    override def tau: Property = Tau
+
+    override def empty: Property = Empty
+
   }
 }

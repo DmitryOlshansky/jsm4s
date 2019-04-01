@@ -1,5 +1,6 @@
 package jsm4s.property
 
+
 trait Property {
   /// If this property is tau, that is undefined
   def tau: Boolean
@@ -11,6 +12,17 @@ trait Property {
   def toString: String
 }
 
-object Property {
-  type Factory = String => Property
+trait PropertyFactory {
+  def tau: Property
+  def empty: Property
+  def encode(value: String): Property
+  def decode(property: Property): String
+}
+
+object PropertyFactory {
+  def apply(description: String) = {
+    val composite = new Composite.Factory(description)
+    if (composite.factories.size == 1) composite.factories.head
+    else composite
+  }
 }

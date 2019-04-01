@@ -1,7 +1,7 @@
 package jsm4s.algorithm
 
 import jsm4s.ds.FcaSet
-import jsm4s.property.Properties
+import jsm4s.property.Composite
 
 class DynSortCbO(context: Context) extends Algorithm(context) {
 

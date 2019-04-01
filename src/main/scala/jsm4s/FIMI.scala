@@ -5,17 +5,26 @@ import java.io._
 import com.github.tototoshi.csv.CSVReader
 import jsm4s.attribute.{Attribute, EnumAttribute}
 import jsm4s.ds.{BitSet, FcaSet}
-import jsm4s.property.{BinaryProperty, Properties, Property}
+import jsm4s.property.{BinaryProperty, Composite, Property, PropertyFactory}
 
 import scala.collection.{Seq, SortedMap, SortedSet, mutable}
 import scala.io.Source
 import scala.util.Random
 
-case class FIMI(intents: Seq[FcaSet], props: Seq[Property], attrs: Int, header:String)
+case class FIMI(intents: Seq[FcaSet],
+                props: Seq[Property],
+                header: String,
+                attrs: Int,
+                factory: PropertyFactory)
 
 object FIMI {
 
-  val regex = """#\s+attributes:\s+(\d+)\s+properties:\s+(\w+)""".r
+  private val regex = """#\s+attributes:\s+(\d+)\s+properties:\s+([\s<=>?(),\w]+)""".r
+
+  def parseFimiHeader(header: String) = {
+    val regex(attrsDescr, propertyDescr) = header
+    (attrsDescr.toInt, PropertyFactory(propertyDescr))
+  }
 
   def encode(input: InputStream, output: OutputStream, properties: List[Int]) = {
     val reader = CSVReader.open(new InputStreamReader(input))
@@ -64,16 +73,17 @@ object FIMI {
     }.toSeq
 
     // Now map properties as pairs of attributes
-    val propertiesTranslation = mutable.HashMap[(String, Int), Property]()
+    val propertiesTranslation = mutable.HashMap[(String, Int), String]()
     var propertiesDescriptor = ""
     for ((k, v) <- valuesDistribution if properties.contains(k)) {
       if (v.size == 2) {
-        val keys = v.keys.toSeq
-        val factory = BinaryProperty.factory(SortedSet[String](keys: _*))
+        val keys = v.keys.toSeq.sorted
+        val factory = new BinaryProperty.Factory(keys)
         for (item <- keys) {
-          propertiesTranslation.put((item, k), factory(item))
+          propertiesTranslation.put((item, k), factory.decode(factory.encode(item)))
         }
-        propertiesDescriptor += "B"
+        val descriptor = "B" + keys.mkString("(", ",", ")")
+        propertiesDescriptor += descriptor
       }
       else ??? // other properties
     }
@@ -84,7 +94,7 @@ object FIMI {
       val attrs = line.zipWithIndex.filter(p => !properties.contains(p._2))
         .flatMap { pair => attributesTranslation(pair._2)(pair._1) }.sorted.mkString(" ")
       val props = line.zipWithIndex.filter(p => properties.contains(p._2))
-        .map(propertiesTranslation).mkString(""," ", "\n")
+        .map(propertiesTranslation).mkString("","", "\n")
       output.write((attrs + " | " +  props).getBytes)
     }
     output.close()
@@ -113,11 +123,12 @@ object FIMI {
     try{
       val header = lines.next()
       val regex(attrs, propertiesDescr) = header
-      val tau = Properties.tau(propertiesDescr)
+      val factory = new Composite.Factory(propertiesDescr)
+      val tau = factory.decode(factory.tau)
       writer.write(header + "\n")
       for (line <- lines) {
         val attrs = line.split(" \\| ")(0)
-        writer.write(attrs + " | " + tau.toString + "\n")
+        writer.write(attrs + " | " + tau + "\n")
       }
     }
     catch {
@@ -128,22 +139,18 @@ object FIMI {
     finally writer.close()
   }
 
-
   def load(in: InputStream): FIMI  = {
     val lines = Source.fromInputStream(in).getLines()
     val header = lines.next()
-    val regex(attrsDescr, propertyDescr) = header
-    val factory = Properties.loader(propertyDescr)
-    val attrs = attrsDescr.toInt
+    val (attrs, factory) = parseFimiHeader(header)
     val intents = mutable.Buffer[FcaSet]()
     val properties = mutable.Buffer[Property]()
-
     for (line <- lines) {
       val parts = line.split(" \\| ")
       val attrsIterable = parts(0).split(" ").map(_.toInt)
       intents += BitSet(attrsIterable, attrs)
-      properties += factory(parts(1))
+      properties += factory.encode(parts(1).trim)
     }
-    FIMI(intents, properties, attrs, header)
+    FIMI(intents, properties, header, attrs, factory)
   }
 }

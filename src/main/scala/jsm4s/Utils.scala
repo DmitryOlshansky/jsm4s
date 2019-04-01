@@ -12,4 +12,6 @@ object Utils extends LazyLogging {
     logger.info(name + " took {} seconds", delta / 1000.0)
     ret
   }
+
+  def ensure(stmt: =>Boolean, ex: =>Exception) = if (!stmt) throw ex
 }

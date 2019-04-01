@@ -1,8 +1,13 @@
 package jsm4s.property
 
+import jsm4s.property
+import jsm4s.property.BinaryProperty.{Negative, Positive}
 import org.scalatest._
 
 class TestProperty extends WordSpec with Matchers {
+  class Fixture {
+    val factory = new BinaryProperty.Factory(Seq("a", "b"))
+  }
   "Binary properties" should {
     "conflict if of opposite signs" in {
       val pos = BinaryProperty.Positive
@@ -29,48 +34,20 @@ class TestProperty extends WordSpec with Matchers {
       (pos & pos) shouldEqual pos
     }
 
-    "factory throws on wrong input" in {
+    "factory throws on encoding incorrect input" in new Fixture {
       intercept[PropertyException] {
-        BinaryProperty.loader("45")
-      }
-      intercept[PropertyException] {
-        BinaryProperty.loader("-1")
+        factory.encode("c")
       }
     }
 
-    "factory creates property on correct input" in {
-      BinaryProperty.loader("1") shouldEqual  BinaryProperty.Positive
-    }
-  }
-
-  "Level properties" should {
-    "intersection of the same sign picks maximum" in {
-      val pos1 = new LevelProperty(3, 1, 0)
-      val pos2 = new LevelProperty(3, 3, 0)
-      (pos1 & pos2).positive shouldEqual 3
-      (pos1 & pos2).negative shouldEqual 0
-
-      val neg1 = new LevelProperty(6, 2, 2)
-      val neg2 = new LevelProperty(6, 1, 3)
-      (neg1 & neg2).positive shouldEqual 2
-      (neg1 & neg2).negative shouldEqual 3
+    "factory encodes valid input" in new Fixture {
+      factory.encode("a") shouldBe Positive
+      factory.encode("b") shouldBe Negative
     }
 
-    "intersection of opposite sign eliminates overlap" in {
-      val pos1 = new LevelProperty(3, 3, 0)
-      val neg1 = new LevelProperty(3, 0, 1)
-      (neg1 & pos1).positive shouldEqual 2
-      (neg1 & pos1).negative shouldEqual 0
-
-      val pos2 = new LevelProperty(3, 2, 0)
-      val neg2 = new LevelProperty(3, 0, 2)
-      (neg2 & pos2).positive shouldEqual 1
-      (neg2 & pos2).negative shouldEqual 1
-
-      val pos3 = new LevelProperty(3, 2, 1)
-      val neg3 = new LevelProperty(3, 1, 2)
-      (neg3 & pos3).positive shouldEqual 1
-      (neg3 & pos3).negative shouldEqual 1
+    "factory decodes properties" in new Fixture {
+      factory.decode(Positive) shouldBe "a"
+      factory.decode(Negative) shouldBe "b"
     }
   }
 }

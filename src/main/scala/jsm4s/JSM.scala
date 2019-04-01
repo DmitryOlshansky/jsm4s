@@ -6,13 +6,13 @@ import com.typesafe.scalalogging.LazyLogging
 import jsm4s.Utils._
 import jsm4s.algorithm.Strategies.MergeStrategy
 import jsm4s.algorithm._
-import jsm4s.property.Property
+import jsm4s.property.{Composite, Property}
 
 object JSM extends LazyLogging {
 
   def generate(input: InputStream, output: OutputStream, algorithm: String, dataStructure: String, minSupport: Int, threads: Int) = {
     val data = FIMI.load(input)
-    val sink = new StreamSink(data.header, output)
+    val sink = new StreamSink(data.header, data.factory, output)
     val stats = new SimpleCollector
     val jsm = Algorithm(algorithm, dataStructure, data, minSupport, threads, stats, sink)
     jsm.run()
@@ -27,10 +27,10 @@ object JSM extends LazyLogging {
         throw new JsmException(s"Metadata of data sets doesn't match `${hypotheses.header}` vs `${examples.header}`")
       out.write(hypotheses.header+"\n")
       val combined = hypotheses.intents.zip(hypotheses.props).map{ x => Hypothesis(x._1, x._2) }
-      val predictor = new Predictor(combined, hypotheses.attrs, mergeStrategy)
+      val predictor = new Predictor(combined, hypotheses.attrs, hypotheses.factory, mergeStrategy)
       val predictions = timeIt("Calculating predictions")(examples.intents.par.map { e => (e, predictor(e)) }).seq
       timeIt("Predictions serialization"){
-        for (p <- predictions) out.write(p._1.mkString("", " ", " | ") + p._2.toString + "\n")
+        for (p <- predictions) out.write(p._1.mkString("", " ", " | ") + hypotheses.factory.decode(p._2) + "\n")
       }
     }
     catch {
@@ -54,11 +54,12 @@ object JSM extends LazyLogging {
       val algo = Algorithm(algorithm, dataStructure, training, minSupport, threads, stats, sink)
       timeIt("Generating hypotheses")(algo.run())
       val hypotheses = sink.hypotheses
-      val predictor = new Predictor(hypotheses, training.attrs, mergeStrategy)
+      val factory = new Composite.Factory(training.header)
+      val predictor = new Predictor(hypotheses, training.attrs, training.factory, mergeStrategy)
       val predictions = timeIt("Calculating predictions")(examples.intents.par.map { e => (e, predictor(e)) }).seq
       timeIt("Predictions serialization"){
         out.write(training.header+"\n")
-        for (p <- predictions) out.write(p._1.mkString("", " ", " | ") + p._2.toString + "\n")
+        for (p <- predictions) out.write(p._1.mkString("", " ", " | ") + factory.decode(p._2) + "\n")
       }
     }
     catch {

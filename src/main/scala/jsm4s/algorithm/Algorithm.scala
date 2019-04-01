@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.LazyLogging
 import jsm4s.FIMI
 import jsm4s.ds._
 import jsm4s.processing.SortingProcessor
-import jsm4s.property.{Properties, Property}
+import jsm4s.property.{Composite, Property, PropertyFactory}
 
 import scala.collection.mutable
 
@@ -46,13 +46,13 @@ trait Sink {
   def close():Unit
 }
 
-class StreamSink(header: String, val out: OutputStream) extends Sink {
+class StreamSink(header: String, factory: PropertyFactory, out: OutputStream) extends Sink {
   val writer = new OutputStreamWriter(out)
 
   writer.write(header + "\n")
 
   override def apply(h: Hypothesis) = {
-    val str = h.intent.mkString(" ") + " | " + h.props.toString + "\n"
+    val str = h.intent.mkString(" ") + " | " + factory.decode(h.props) + "\n"
     writer.synchronized {
       writer.write(str)
     }
@@ -110,7 +110,7 @@ abstract class Algorithm(context: Context) {
   val sink = context.sink
   val ext = context.ext
   val int = context.int
-  val emptyProperties = new Properties(Seq())
+  val emptyProperties = new Composite(Seq())
 
   // filter on extent-intent pair
   def merge(extent: FcaSet, intent: FcaSet): Property = {
