@@ -12,10 +12,10 @@ object Attribute {
 
   private def isNumeric(value: String) = Try(value.toDouble).isSuccess
 
-  def factory(values: SortedMap[String, Int], properties: SortedMap[String, Set[String]], offset: Int): Attribute = {
+  def apply(values: Map[String, Map[String, Int]], offset: Int): Attribute = {
     if (values.keys.forall{ key => isNumeric(key)} && values.size > 10){
-      new ClusteringNumericAttribute(values, properties, offset)
+      new Id3Atribute(values, offset)
     }
-    else new EnumAttribute(values, offset)
+    else new EnumAttribute(values.keys.toSet, offset)
   }
 }
