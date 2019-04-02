@@ -6,8 +6,10 @@ CMD=$BASEDIR/target/universal/stage/bin/jsm-cli
 sbt stage 2>&1
 echo "--- Encoding of CSV"
 $CMD encode -p $PROPERTY data/$DATASET.csv $DATASET.dat
-echo "--- Randomized split of dataset"
-$CMD split 8:2 $DATASET.dat $DATASET-training.dat $DATASET-verify.dat
+echo "--- Randomized split of verify"
+$CMD split 8:2 $DATASET.dat $DATASET-training-cv.dat $DATASET-verify.dat
+echo "--- Randomized split of C-V"
+$CMD split 8:2 $DATASET-training-cv.dat $DATASET-training.dat $DATASET-cv.dat
 echo "--- Produce dataset with hidden value out of verify dataset"
 $CMD tau $DATASET-verify.dat $DATASET-tau.dat
 echo "--- Generate model"
