@@ -11,7 +11,7 @@ $CMD split 8:2 $DATASET.dat $DATASET-training.dat $DATASET-verify.dat
 echo "--- Produce dataset with hidden value out of verify dataset"
 $CMD tau $DATASET-verify.dat $DATASET-tau.dat
 echo "--- Generate model"
-$CMD generate -m $DATASET-model.dat $DATASET-training.dat
+$CMD generate -m $DATASET-model.dat --support 5 $DATASET-training.dat
 echo "--- Run predictions on file with tau properties"
 $CMD predict -m $DATASET-model.dat -o $DATASET-predictions.dat $DATASET-tau.dat
 echo "--- Calculate basic stats on predictions"

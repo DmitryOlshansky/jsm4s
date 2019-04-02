@@ -4,9 +4,10 @@ import java.io._
 
 import com.typesafe.scalalogging.LazyLogging
 import jsm4s.Utils._
-import jsm4s.algorithm.Strategies.MergeStrategy
+
 import jsm4s.algorithm._
 import jsm4s.property.{Composite, Property}
+import jsm4s.algorithm.Strategies.MergeStrategy
 
 object JSM extends LazyLogging {
 
@@ -85,9 +86,9 @@ object JSM extends LazyLogging {
     val unknown = predicted.props.count { x => x.tau }
     val conflicts = predicted.props.count { x => x.empty }
 
-    logger.info("Correct predictions ratio {}/{}", correct, pairs.size)
-    logger.info("Unknown ratio {}/{}", unknown, pairs.size)
-    logger.info("Conflicts ratio {}/{}", conflicts, pairs.size)
+    logger.info("Correct predictions ratio {}/{} {}%", correct, pairs.size, correct.toDouble*100/pairs.size)
+    logger.info("Unknown ratio {}/{} {}%", unknown, pairs.size, unknown.toDouble*100/pairs.size)
+    logger.info("Conflicts ratio {}/{} {}%", conflicts, pairs.size, conflicts.toDouble*100/pairs.size)
   }
 }
 

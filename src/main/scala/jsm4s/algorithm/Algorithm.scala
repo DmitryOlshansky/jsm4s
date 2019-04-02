@@ -4,6 +4,7 @@ import java.io.{ByteArrayOutputStream, OutputStream, OutputStreamWriter}
 
 import com.typesafe.scalalogging.LazyLogging
 import jsm4s.FIMI
+import jsm4s.algorithm.Strategies._
 import jsm4s.ds._
 import jsm4s.processing.SortingProcessor
 import jsm4s.property.{Composite, Property, PropertyFactory}
@@ -84,7 +85,8 @@ case class Context(rows: Seq[FcaSet],
                    stats: StatsCollector,
                    sink: Sink,
                    ext: ExtentFactory,
-                   int: IntentFactory)
+                   int: IntentFactory,
+                   strategy: MergeStrategy)
 
 object Context {
   def sorted(rows: Seq[FcaSet],
@@ -94,10 +96,11 @@ object Context {
              stats: StatsCollector,
              sink: Sink,
              ext: ExtentFactory,
-             int: IntentFactory): Context = {
+             int: IntentFactory,
+             strategy: MergeStrategy): Context = {
     val proc = new SortingProcessor(rows, attributes, sink, int)
     val sorted = rows.map(intent => int.values(proc.preProcess(intent)))
-    Context(sorted, props, attributes, minSupport, stats, proc, ext, int)
+    Context(sorted, props, attributes, minSupport, stats, proc, ext, int, strategy)
   }
 }
 
@@ -110,13 +113,14 @@ abstract class Algorithm(context: Context) {
   val sink = context.sink
   val ext = context.ext
   val int = context.int
+  val strategy = context.strategy
   val emptyProperties = new Composite(Seq())
 
   // filter on extent-intent pair
   def merge(extent: FcaSet, intent: FcaSet): Property = {
     if (props.isEmpty) emptyProperties
     else {
-      val properties = extent.map(e => props(e)).reduceLeft((a,b) => a & b)
+      val properties = strategy(extent.map(e => props(e)).toSeq)
       properties
     }
   }
@@ -167,11 +171,11 @@ object Algorithm extends LazyLogging {
         val intFactory = new SparseBitInt(data.attrs)
         logger.info("Using sparse data-structure")
         val sparseSets = data.intents.map(x => SparseBitSet(x))
-        Context.sorted(sparseSets, data.props, data.attrs, minSupport, stats, sink, extFactory, intFactory)
+        Context.sorted(sparseSets, data.props, data.attrs, minSupport, stats, sink, extFactory, intFactory, noCounterExamples)
       case "dense" =>
         logger.info("Using dense data-structure")
         val intFactory = new BitInt(data.attrs)
-        Context.sorted(data.intents, data.props, data.attrs, minSupport, stats, sink, extFactory, intFactory)
+        Context.sorted(data.intents, data.props, data.attrs, minSupport, stats, sink, extFactory, intFactory, noCounterExamples)
     }
     val algo = name match {
       case "cbo" => new CbO(context)

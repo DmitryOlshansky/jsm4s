@@ -10,6 +10,10 @@ object Strategies {
 
   type MergeStrategy = Seq[Property] => Property
 
+  def noCounterExamples(seq: Seq[Property]): Property = {
+    seq.reduceLeft(_ & _)
+  }
+
   def votingMajority(seq: Seq[Property]): Property = {
     ensure (seq.nonEmpty, new JsmException("merge strategies do not accept empty list"))
     seq.head match {
@@ -19,9 +23,9 @@ object Strategies {
           if (seq(i).asInstanceOf[BinaryProperty].positive) votes += 1
           else votes -= 1
         }
-        if (votes > 0) BinaryProperty.Positive
-        else if(votes == 0) BinaryProperty.Tau
-        else BinaryProperty.Negative
+        if (votes > seq.length/2) BinaryProperty.Positive
+        else if (votes < -seq.length/2) BinaryProperty.Negative
+        else BinaryProperty.Empty
       case head: Composite => // generic properties code
         val len = head.size
         val votes = Array.fill(len)(mutable.Map[Property, Int]())

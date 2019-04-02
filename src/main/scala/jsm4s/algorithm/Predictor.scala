@@ -22,7 +22,7 @@ class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, factory: Proper
 
 
   private def buildLadder: Ladder = {
-    val portion = 0.01 // exclude all attributes that sum up to less then `portion` of total
+    val portion = 0.005 // exclude all attributes that sum up to less then `portion` of total
     val threshold = 20 // minimum weight to consider, trims down on fruitless computation
     var remaining = hypotheses
     val weight = Array.ofDim[Int](attrs)
@@ -69,7 +69,7 @@ class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, factory: Proper
     val matching = hyps.filter {
       h => h.intent.subsetOf(example, attrs)
     }
-    if (matching.isEmpty) factory.empty
+    if (matching.isEmpty) factory.tau
     else mergeStrategy(matching.map(_.props))
   }
 }
