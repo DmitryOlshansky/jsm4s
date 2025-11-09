@@ -26,7 +26,7 @@ case class Composite(value: Seq[Property]) extends Property {
 
 object Composite {
 
-  private def parse(onBinary: Seq[String] => Unit)(description: String) = {
+  private def parse(onBinary: Seq[String] => Unit, onOrdinal: Seq[String] => Unit)(description: String) = {
     var i = 0
 
     while (i < description.length) {
@@ -39,6 +39,13 @@ object Composite {
           val j = i
           while(i < description.length && description.charAt(i) != ')') i += 1
           onBinary(description.slice(j, i).split(",").map(_.trim))
+        case 'O' => 
+          i += 1
+          ensure(description.charAt(i) == '(', new PropertyException("Expected '(' in ordinal property marker"))
+          i += 1
+          val j = i
+          while(i < description.length && description.charAt(i) != ')') i += 1
+          onOrdinal(description.slice(j, i).split(",").map(_.trim))
         case _ => throw new PropertyException(s"Unsupported property type marker `$head`")
       }
       i += 1
@@ -49,7 +56,8 @@ object Composite {
     val (factories, tau, empty)  = {
       val buf = mutable.Buffer[PropertyFactory]()
       parse(
-        keys => buf += new BinaryProperty.Factory(keys)
+        keys => buf += new BinaryProperty.Factory(keys),
+        keys => buf += new OrdinalProperty.Factory(keys)
       )(description)
       (buf.toSeq, new Composite(buf.map(_.tau)), new Composite(buf.map(_.empty)))
     }

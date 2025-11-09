@@ -1,7 +1,7 @@
 package jsm4s.algorithm
 
 import jsm4s.JsmException
-import jsm4s.property.{BinaryProperty, Composite, Property}
+import jsm4s.property.{BinaryProperty, OrdinalProperty, Composite, Property}
 import jsm4s.Utils.ensure
 
 import scala.collection.mutable
@@ -26,6 +26,20 @@ object Strategies {
         if (votes > seq.length/2) BinaryProperty.Positive
         else if (votes < -seq.length/2) BinaryProperty.Negative
         else BinaryProperty.Empty
+      case _: OrdinalProperty => 
+        if (seq.length > 1) {
+          var h = mutable.Map[Int, Int]()
+          for (p <- seq) {
+            val ord = p.asInstanceOf[OrdinalProperty].value
+            val x = h.get(ord)
+            x match {
+              case None => h.put(ord, 1)
+              case Some(v) => h.put(ord, v+1)
+            }
+          }
+          new OrdinalProperty(h.seq.maxBy(_._2)._1)
+        }
+        else seq.head
       case head: Composite => // generic properties code
         val len = head.size
         val votes = Array.fill(len)(mutable.Map[Property, Int]())

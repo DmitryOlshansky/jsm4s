@@ -5,7 +5,7 @@ import java.io._
 import com.github.tototoshi.csv.CSVReader
 import jsm4s.attribute.{Attribute, EnumAttribute}
 import jsm4s.ds.{BitSet, FcaSet}
-import jsm4s.property.{BinaryProperty, Composite, Property, PropertyFactory}
+import jsm4s.property.{BinaryProperty, OrdinalProperty, Composite, Property, PropertyFactory}
 
 import scala.collection.{Seq, SortedMap, SortedSet, mutable}
 import scala.io.Source
@@ -85,7 +85,14 @@ object FIMI {
         val descriptor = "B" + keys.mkString("(", ",", ")")
         propertiesDescriptor += descriptor
       }
-      else ??? // other properties
+      else { // oridinal property, works for integers and enums
+        val keys = v.keys.toSeq.sorted
+        val factory = new OrdinalProperty.Factory(keys)
+        for (item <- keys) {
+          propertiesTranslation.put((item, k), factory.decode(factory.encode(item)))
+        }
+        propertiesDescriptor += "O"
+      }
     }
 
     val attributes = lastUsed
@@ -147,7 +154,7 @@ object FIMI {
     val properties = mutable.Buffer[Property]()
     for (line <- lines) {
       val parts = line.split(" \\| ")
-      val attrsIterable = parts(0).split(" ").map(_.toInt)
+      val attrsIterable = parts(0).trim().split(" ").map(_.toInt)
       intents += BitSet(attrsIterable, attrs)
       properties += factory.encode(parts(1).trim)
     }
