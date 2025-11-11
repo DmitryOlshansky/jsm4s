@@ -2,9 +2,9 @@ name         := "jsm4s"
 
 organization := "olshansky.me"
 
-scalaVersion := "2.13.16"
+scalaVersion := "3.7.3"
 
-scalacOptions := Seq("-encoding", "utf8")
+scalacOptions := Seq("-deprecation", "-encoding", "utf8")
 
 libraryDependencies ++= Seq(
   "org.rogach" %% "scallop" % "5.2.0",

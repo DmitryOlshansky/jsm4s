@@ -5,7 +5,7 @@ import java.io._
 import jsm4s.Utils._
 import com.typesafe.scalalogging.LazyLogging
 import jsm4s.algorithm.Strategies
-import org.rogach.scallop.{ScallopConf, Subcommand}
+import org.rogach.scallop._
 
 object EncodeCommand extends Subcommand("encode") {
   val properties = opt[List[Int]](short = 'p', descr = "Columns with target properties")
@@ -71,7 +71,7 @@ class Config(arguments: Seq[String]) extends ScallopConf(arguments) {
 object JsmCli extends LazyLogging {
 
   def main(args: Array[String]) = {
-    val config = new Config(args)
+    val config = new Config(args.toIndexedSeq)
     config.subcommand match {
       case Some(EncodeCommand) =>
         val e = EncodeCommand

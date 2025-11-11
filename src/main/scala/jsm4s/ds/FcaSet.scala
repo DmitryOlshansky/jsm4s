@@ -7,7 +7,7 @@ import scala.collection.Iterable
   */
 /// A minimal integer set for FCA computations
 trait FcaSet extends Iterable[Int] {
-  def contains(x: Int): Boolean
+  infix def contains(x: Int): Boolean
 
   def +=(x: Int): FcaSet
 

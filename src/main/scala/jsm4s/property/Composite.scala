@@ -53,7 +53,7 @@ object Composite {
   }
 
   class Factory(description: String) extends PropertyFactory {
-    val (factories, tau, empty)  = {
+    val (factories, tau: Composite, empty: Composite)  = {
       val buf = mutable.Buffer[PropertyFactory]()
       parse(
         keys => buf += new BinaryProperty.Factory(keys),
@@ -63,7 +63,7 @@ object Composite {
       (seq, new Composite(seq.map(_.tau)), new Composite(seq.map(_.empty)))
     }
 
-    def encode(x: String) = {
+    def encode(x: String): Composite = {
       val items = x.split(" ")
       val props = items.zipWithIndex.map { pair =>
         factories(pair._2).encode(pair._1)

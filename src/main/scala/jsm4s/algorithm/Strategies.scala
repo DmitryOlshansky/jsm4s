@@ -37,12 +37,12 @@ object Strategies {
               case Some(v) => h.put(ord, v+1)
             }
           }
-          new OrdinalProperty(h.seq.maxBy(_._2)._1)
+          new OrdinalProperty(h.toSeq.maxBy(_._2)._1)
         }
         else seq.head
       case head: Composite => // generic properties code
         val len = head.size
-        val votes = Array.fill(len)(mutable.Map[Property, Int]())
+        val votes = Seq.fill(len)(mutable.Map[Property, Int]())
         seq.foreach {
           case Composite(props) =>
             for (i <- 0 until len) {

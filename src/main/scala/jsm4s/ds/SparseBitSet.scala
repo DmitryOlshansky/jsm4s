@@ -219,11 +219,11 @@ class SparseBitSet(var table: Array[Long], var len: Int) extends FcaSet {
 
 object SparseBitSet {
 
-  def empty(capacity: Int) = new SparseBitSet(Array.emptyLongArray, 0)
+  def empty(capacity: Int): SparseBitSet = new SparseBitSet(Array.emptyLongArray, 0)
 
-  def full(capacity: Int) = SparseBitSet(0 until capacity)
+  def full(capacity: Int): SparseBitSet = SparseBitSet(0 until capacity)
 
-  def apply(seq: Iterable[Int]) = {
+  def apply(seq: Iterable[Int]): SparseBitSet = {
     val set = SparseBitSet.empty(0)
     seq.foreach{ e => set += e }
     set
@@ -232,15 +232,15 @@ object SparseBitSet {
 
 
 class SparseBitExt(val objects: Int) extends ExtentFactory {
-  override val empty = SparseBitSet.empty(objects)
-  override val full = SparseBitSet.full(objects)
+  override val empty: SparseBitSet = SparseBitSet.empty(objects)
+  override val full: SparseBitSet = SparseBitSet.full(objects)
 
-  override def values(seq: Iterable[Int]) = SparseBitSet(seq)
+  override def values(seq: Iterable[Int]): SparseBitSet = SparseBitSet(seq)
 }
 
 class SparseBitInt(val attributes: Int) extends IntentFactory {
-  override val empty = SparseBitSet.empty(attributes)
-  override val full = SparseBitSet.full(attributes)
+  override val empty: SparseBitSet = SparseBitSet.empty(attributes)
+  override val full: SparseBitSet = SparseBitSet.full(attributes)
 
-  override def values(seq: Iterable[Int]) = SparseBitSet(seq)
+  override def values(seq: Iterable[Int]): SparseBitSet = SparseBitSet(seq)
 }
