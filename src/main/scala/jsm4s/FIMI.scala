@@ -7,7 +7,7 @@ import jsm4s.attribute.{Attribute, EnumAttribute}
 import jsm4s.ds.{BitSet, FcaSet}
 import jsm4s.property.{BinaryProperty, OrdinalProperty, Composite, Property, PropertyFactory}
 
-import scala.collection.{Seq, SortedMap, SortedSet, mutable}
+import scala.collection.{SortedMap, SortedSet, mutable}
 import scala.io.Source
 import scala.util.Random
 
@@ -91,7 +91,7 @@ object FIMI {
         for (item <- keys) {
           propertiesTranslation.put((item, k), factory.decode(factory.encode(item)))
         }
-        propertiesDescriptor += "O"
+        propertiesDescriptor += "O" + keys.mkString("(", ",", ")")
       }
     }
 
@@ -158,6 +158,6 @@ object FIMI {
       intents += BitSet(attrsIterable, attrs)
       properties += factory.encode(parts(1).trim)
     }
-    FIMI(intents, properties, header, attrs, factory)
+    FIMI(intents.toSeq, properties.toSeq, header, attrs, factory)
   }
 }

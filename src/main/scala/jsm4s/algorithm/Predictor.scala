@@ -52,7 +52,7 @@ class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, factory: Proper
         }
       }
       logger.info("Reminder size is {}", remaining.size)
-      Ladder(buf, remaining)
+      Ladder(buf.toSeq, remaining)
     }
   }
 

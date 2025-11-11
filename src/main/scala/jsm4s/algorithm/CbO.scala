@@ -26,7 +26,7 @@ class CbO(context: Context) extends Algorithm(context) {
     }
   }
 
-  override def perform = {
+  override def perform() = {
     val A = ext.full
     val B = rows.fold(int.full)((a, b) => a & b) // full intersection
     method(A, B, 0)
@@ -59,7 +59,7 @@ abstract class GenericBCbO(context: Context)
     recDepth -= 1
   }
 
-  override def perform = {
+  override def perform() = {
     val A = ext.full
     val B = rows.fold(int.full)((a, b) => a & b) // full intersection
     method(A, B, 0)
@@ -76,7 +76,7 @@ class PCbO(context: Context, threads: Int) extends GenericBCbO(context) {
     })
   }
 
-  override def perform = {
+  override def perform() = {
     super.perform()
     pool.awaitQuiescence(1000, TimeUnit.DAYS)
   }

@@ -3,8 +3,10 @@ package jsm4s.property
 import jsm4s.property
 import jsm4s.property.BinaryProperty.{Negative, Positive}
 import org.scalatest._
+import org.scalatest.matchers.should._
+import wordspec._
 
-class TestProperty extends WordSpec with Matchers {
+class TestProperty extends AnyWordSpec with Matchers {
   class Fixture {
     val factory = new BinaryProperty.Factory(Seq("a", "b"))
   }

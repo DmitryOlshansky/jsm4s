@@ -3,6 +3,7 @@ package me.olshansky
 import java.io.FileInputStream
 
 import com.typesafe.scalalogging.LazyLogging
+import scala.collection.parallel.CollectionConverters._
 import jsm4s.FIMI
 import jsm4s.Utils._
 import jsm4s.algorithm._

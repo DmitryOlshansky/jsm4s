@@ -59,7 +59,8 @@ object Composite {
         keys => buf += new BinaryProperty.Factory(keys),
         keys => buf += new OrdinalProperty.Factory(keys)
       )(description)
-      (buf.toSeq, new Composite(buf.map(_.tau)), new Composite(buf.map(_.empty)))
+      val seq = buf.toSeq
+      (seq, new Composite(seq.map(_.tau)), new Composite(seq.map(_.empty)))
     }
 
     def encode(x: String) = {

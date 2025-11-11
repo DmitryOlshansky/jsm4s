@@ -1,9 +1,11 @@
 package jsm4s
 
 import org.scalatest._
+import org.scalatest.matchers.should._
+import flatspec._
 import jsm4s.ds.SparseBitSet
 
-class TestSparseBitSet extends FlatSpec with Matchers {
+class TestSparseBitSet extends AnyFlatSpec with Matchers {
   "SparseBitSet" should "work like integer set" in {
     val b1 = SparseBitSet.empty(700)
     val b2 = SparseBitSet.empty(700)

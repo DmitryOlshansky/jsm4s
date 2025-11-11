@@ -75,7 +75,7 @@ class ArraySink extends Sink {
 
   override def close(): Unit = {}
 
-  def hypotheses:Seq[Hypothesis] = buffer
+  def hypotheses:Seq[Hypothesis] = buffer.toSeq
 }
 
 case class Context(rows: Seq[FcaSet],
@@ -170,7 +170,7 @@ object Algorithm extends LazyLogging {
       case "sparse" =>
         val intFactory = new SparseBitInt(data.attrs)
         logger.info("Using sparse data-structure")
-        val sparseSets = data.intents.map(x => SparseBitSet(x))
+        val sparseSets = data.intents.map(x => SparseBitSet(x)).toSeq
         Context.sorted(sparseSets, data.props, data.attrs, minSupport, stats, sink, extFactory, intFactory, noCounterExamples)
       case "dense" =>
         logger.info("Using dense data-structure")

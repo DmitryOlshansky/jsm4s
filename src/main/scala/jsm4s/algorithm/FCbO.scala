@@ -46,7 +46,7 @@ abstract class GenericFCbO(context: Context)
     recDepth -= 1
   }
 
-  override def perform = {
+  override def perform() = {
     val A = ext.full
     val B = rows.fold(int.full)((a, b) => a & b) // full intersection
     val implied = Array.ofDim[FcaSet]((attributes + 1) * attributes)
@@ -71,7 +71,7 @@ class PFCbO(context: Context, threads: Int) extends GenericFCbO(context)  {
     })
   }
 
-  override def perform = {
+  override def perform() = {
     super.perform()
     pool.awaitQuiescence(1000, TimeUnit.DAYS)
   }

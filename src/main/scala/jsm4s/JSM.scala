@@ -2,6 +2,8 @@ package jsm4s
 
 import java.io._
 
+import scala.collection.parallel.CollectionConverters._
+
 import com.typesafe.scalalogging.LazyLogging
 import jsm4s.Utils._
 
@@ -27,7 +29,7 @@ object JSM extends LazyLogging {
       if (hypotheses.header != examples.header)
         throw new JsmException(s"Metadata of data sets doesn't match `${hypotheses.header}` vs `${examples.header}`")
       out.write(hypotheses.header+"\n")
-      val combined = hypotheses.intents.zip(hypotheses.props).map{ x => Hypothesis(x._1, x._2) }
+      val combined = hypotheses.intents.zip(hypotheses.props).map{ x => Hypothesis(x._1, x._2) }.toSeq
       val predictor = new Predictor(combined, hypotheses.attrs, hypotheses.factory, mergeStrategy)
       val predictions = timeIt("Calculating predictions")(examples.intents.par.map { e => (e, predictor(e)) }).seq
       timeIt("Predictions serialization"){
