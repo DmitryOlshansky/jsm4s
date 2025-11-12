@@ -2,6 +2,8 @@ name         := "jsm4s"
 
 organization := "olshansky.me"
 
+maintainer := "dmitry@olshansky.me"
+
 scalaVersion := "2.12.20"
 
 scalacOptions := Seq("-unchecked", "-feature", "-deprecation", "-encoding", "utf8")
@@ -15,12 +17,12 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.3" % "test"
 )
 
-//enablePlugins(GitVersioning)
+enablePlugins(GitVersioning)
 
-//enablePlugins(GitBranchPrompt)
+enablePlugins(GitBranchPrompt)
 
-//enablePlugins(JavaAppPackaging)
+enablePlugins(JavaAppPackaging)
 
-//git.useGitDescribe := true
+git.useGitDescribe := true
 
 
