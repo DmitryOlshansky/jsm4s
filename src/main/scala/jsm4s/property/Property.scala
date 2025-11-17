@@ -8,6 +8,8 @@ trait Property {
   def empty: Boolean
   /// Intersect this property with some other property, assumes same type of property
   def &(p:Property): Property
+  // oridinal uniquely identifying this property
+  def key: Int
   /// String encoding of this property
   def toString: String
 }

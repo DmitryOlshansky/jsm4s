@@ -13,6 +13,8 @@ class OrdinalProperty(val value: Int) extends Property {
   override def empty: Boolean = false
 
   override def tau: Boolean = false
+
+  override def key = value
 }
 
 object OrdinalProperty {

@@ -14,6 +14,8 @@ object Strategies {
     seq.reduceLeft(_ & _)
   }
 
+  def noop(seq: Seq[Property]): Property = seq.head
+
   def votingMajority(seq: Seq[Property]): Property = {
     ensure (seq.nonEmpty, new JsmException("merge strategies do not accept empty list"))
     seq.head match {

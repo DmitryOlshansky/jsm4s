@@ -18,6 +18,8 @@ case class Composite(value: Seq[Property]) extends Property {
 
   def size = value.size
 
+  def key = value.map(_.key).sum // TODO: revisit this
+
   override def tau: Boolean = value.nonEmpty && !value.exists(p => !p.tau)
 
   override def toString = value.mkString(" ")
