@@ -10,6 +10,7 @@ import jsm4s.processing.SortingProcessor
 import jsm4s.property.{Composite, Property, PropertyFactory}
 
 import scala.collection.mutable
+import scala.util.matching.Regex
 
 trait StatsCollector {
   def onClosure(): Unit
@@ -166,10 +167,12 @@ object Algorithm extends LazyLogging {
     val density = 100*total / (intents.size * attrs).toDouble
     logger.info("Context density is {}", density)
     val extFactory = new ArrayExt(intents.length)
+    val regex: Regex = """boundedVotingMajority:(\d+)""".r
     val strat = strategy match {
       case "noCounterExamples" => noCounterExamples _
       case "noop" => noop _
       case "votingMajority" => votingMajority _
+      case regex(bound) => boundedVotingMajority(bound.toInt) _
     }
     val context = dataStructure match {
       case "sparse" =>

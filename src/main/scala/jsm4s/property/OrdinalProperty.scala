@@ -1,6 +1,6 @@
 package jsm4s.property
 
-class OrdinalProperty(val value: Int) extends Property {
+case class OrdinalProperty(val value: Int) extends Property {
   override def &(prop: Property): OrdinalProperty = {
     if (value == prop.asInstanceOf[OrdinalProperty].value) this
     else OrdinalProperty.Empty

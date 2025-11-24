@@ -34,7 +34,7 @@ object PredictCommand extends Subcommand("predict") {
 
 object GenerateCommand extends Subcommand("generate") {
   val algorithm = opt[String](default = Some("pfcbo"), short = 'a', descr = "One of: cbo, fcbo, dynsort-cbo, wf-cbo, wf-fcbo")
-  val strategy = opt[String](name = "strategy", default = Some("noCounterExamples"), descr = "One of: noCounterExamples, noop, votingMajority")
+  val strategy = opt[String](name = "strategy", default = Some("noCounterExamples"), descr = "One of: noCounterExamples, noop, votingMajority or boundedVotingMajority:bound")
   val minSupport = opt[Int](name = "support", descr = "Minimum number of objects to support hypothesis")
   val threads = opt[Int](name="t", descr = "Number of threads to use in generation")
   val ds = opt[String](name = "data-structure", descr = "Data structures to use : dense or sparse")
