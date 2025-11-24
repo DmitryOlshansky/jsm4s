@@ -10,6 +10,7 @@ import jsm4s.processing.SortingProcessor
 import jsm4s.property.{Composite, Property, PropertyFactory}
 
 import scala.collection.mutable
+import scala.util.matching.Regex
 
 trait StatsCollector {
   def onClosure(): Unit
@@ -149,9 +150,9 @@ abstract class Algorithm(context: Context) {
 
   def perform(): Unit
 
-  def run(): Unit = {
+  def run(closeSink: Boolean = true): Unit = {
     perform()
-    sink.close()
+    if (closeSink) sink.close()
   }
 }
 
@@ -160,22 +161,29 @@ trait QueueAlgorithm[T] extends Algorithm {
 }
 
 object Algorithm extends LazyLogging {
-  def apply(name: String, dataStructure: String, data: FIMI,
+  def apply(name: String, dataStructure: String, strategy: String, intents: Seq[FcaSet], props: Seq[Property], attrs: Int,
                minSupport: Int, threads: Int, stats:StatsCollector, sink:Sink): Algorithm = {
-    val total = data.intents.foldLeft(0L){(a,b) => a + b.size }
-    val density = 100*total / (data.intents.size * data.attrs).toDouble
+    val total = intents.foldLeft(0L){(a,b) => a + b.size }
+    val density = 100*total / (intents.size * attrs).toDouble
     logger.info("Context density is {}", density)
-    val extFactory = new ArrayExt(data.intents.length)
+    val extFactory = new ArrayExt(intents.length)
+    val regex: Regex = """boundedVotingMajority:(\d+)""".r
+    val strat = strategy match {
+      case "noCounterExamples" => noCounterExamples _
+      case "noop" => noop _
+      case "votingMajority" => votingMajority _
+      case regex(bound) => boundedVotingMajority(bound.toInt) _
+    }
     val context = dataStructure match {
       case "sparse" =>
-        val intFactory = new SparseBitInt(data.attrs)
+        val intFactory = new SparseBitInt(attrs)
         logger.info("Using sparse data-structure")
-        val sparseSets = data.intents.map(x => SparseBitSet(x))
-        Context.sorted(sparseSets, data.props, data.attrs, minSupport, stats, sink, extFactory, intFactory, noCounterExamples)
+        val sparseSets = intents.map(x => SparseBitSet(x))
+        Context.sorted(sparseSets, props, attrs, minSupport, stats, sink, extFactory, intFactory, strat)
       case "dense" =>
         logger.info("Using dense data-structure")
-        val intFactory = new BitInt(data.attrs)
-        Context.sorted(data.intents, data.props, data.attrs, minSupport, stats, sink, extFactory, intFactory, noCounterExamples)
+        val intFactory = new BitInt(attrs)
+        Context.sorted(intents, props, attrs, minSupport, stats, sink, extFactory, intFactory, strat)
     }
     val algo = name match {
       case "cbo" => new CbO(context)

@@ -24,6 +24,8 @@ object BinaryProperty {
 
     override def tau: Boolean = false
 
+    override def key = 1
+
     override def &(prop: Property): BinaryProperty =
       if (prop.asInstanceOf[BinaryProperty].positive) Positive else Empty
 
@@ -38,6 +40,8 @@ object BinaryProperty {
     override def empty: Boolean = false
 
     override def tau: Boolean = false
+
+    override def key = 2
 
     override def &(prop: Property): BinaryProperty =
       if (prop.asInstanceOf[BinaryProperty].negative) Negative else Empty
@@ -54,6 +58,8 @@ object BinaryProperty {
 
     override def tau: Boolean = false
 
+    override def key = 0
+
     override def &(prop: Property): BinaryProperty = Empty
 
     override def toString: String = "0"
@@ -67,6 +73,8 @@ object BinaryProperty {
     override def empty: Boolean = false
 
     override def tau: Boolean = true
+
+    override def key = 3
 
     override def &(prop: Property): BinaryProperty = prop.asInstanceOf[BinaryProperty]
 
