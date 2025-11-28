@@ -1,6 +1,7 @@
 package jsm4s.ds
 
 import java.util.Arrays
+import org.eclipse.collections.api.IntIterable
 
 class BitSet(val table: Array[Int], val length: Int) extends FcaSet with Serializable {
 
@@ -147,6 +148,15 @@ object BitSet {
   def apply(seq: Iterable[Int], length: Int):FcaSet = {
     val bs = new BitSet(Array.ofDim[Int]((length + 31) / 32), length)
     for (s <- seq.iterator) bs += s
+    bs
+  }
+
+  def apply(seq: IntIterable, length: Int):FcaSet = {
+    val bs = new BitSet(Array.ofDim[Int]((length + 31) / 32), length)
+    val iter = seq.intIterator()
+    while (iter.hasNext) {
+      bs += iter.next()
+    }
     bs
   }
 }
