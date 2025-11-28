@@ -11,6 +11,8 @@ import scala.collection.{Seq, SortedMap, SortedSet, mutable}
 import scala.io.Source
 import scala.util.Random
 
+import org.eclipse.collections.impl.list.mutable.primitive.IntArrayList
+
 case class FIMI(intents: Seq[FcaSet],
                 props: Seq[Property],
                 header: String,
@@ -152,12 +154,61 @@ object FIMI {
     val (attrs, factory) = parseFimiHeader(header)
     val intents = mutable.Buffer[FcaSet]()
     val properties = mutable.Buffer[Property]()
+    val reader = new FIMILineReader()
     for (line <- lines) {
-      val parts = line.split(" \\| ")
-      val attrsIterable = parts(0).trim().split(" ").map(_.toInt)
-      intents += BitSet(attrsIterable, attrs)
-      properties += factory.encode(parts(1).trim)
+      reader.read(line)
+      //val parts = line.split(" \\| ")
+      //val attrsIterable = parts(0).trim().split(" ").map(_.toInt)
+      intents += BitSet(reader.attributes, attrs)
+      properties += factory.encode(reader.properties)
+      reader.clear()
     }
     FIMI(intents, properties, header, attrs, factory)
+  }
+}
+
+class FIMILineReader {
+  val table = Array.ofDim[Int](128)
+  val attributes = new IntArrayList()
+  var properties: String = null
+  
+  for (i <- 0 until 128) {
+    if (i >= '0'.toInt && i <= '9'.toInt) {
+      table(i) = i - '0'.toInt
+    }
+    else if (i == '|') {
+      table(i) = -2
+    }
+    else {
+      table(i) = -1
+    }
+  }
+
+  def read(line: String) {
+    var idx = 0
+    var value = 0
+    var inattr = false
+    while (idx < line.length) {
+      val ch = table(line(idx))
+      if (ch >= 0) {
+        value = value * 10 + ch
+        inattr = true
+      } else if (ch == -1) {
+        if (inattr) {
+          attributes.add(value)
+        }
+        value = 0
+        inattr = false
+      } else if (ch == -2) {
+        properties = line.substring(idx+1).trim()
+        idx = line.length
+      }
+      idx += 1
+    }
+  }
+
+  def clear() {
+    properties = null
+    attributes.clear()
   }
 }
