@@ -1,6 +1,7 @@
 package jsm4s.algorithm
 
 import java.io.{ByteArrayOutputStream, OutputStream, OutputStreamWriter}
+import java.util.concurrent.ThreadLocalRandom
 
 import com.typesafe.scalalogging.LazyLogging
 import jsm4s.FIMI
@@ -79,6 +80,19 @@ class ArraySink extends Sink {
   def hypotheses:Seq[Hypothesis] = buffer
 }
 
+trait Sampling {
+  def accept(ext: FcaSet, int: FcaSet): Boolean
+}
+
+object NoSampling extends Sampling {
+  def accept(ext: FcaSet, int: FcaSet) = true
+}
+
+class RandomSampling(val threshold: Double) extends Sampling {
+  def accept(ext: FcaSet, int: FcaSet) = 
+    ThreadLocalRandom.current().nextDouble < threshold
+}
+
 case class Context(rows: Seq[FcaSet],
                    props: Seq[Property],
                    attributes: Int,
@@ -87,7 +101,8 @@ case class Context(rows: Seq[FcaSet],
                    sink: Sink,
                    ext: ExtentFactory,
                    int: IntentFactory,
-                   strategy: MergeStrategy)
+                   strategy: MergeStrategy,
+                   sampling: Sampling)
 
 object Context {
   def sorted(rows: Seq[FcaSet],
@@ -98,10 +113,11 @@ object Context {
              sink: Sink,
              ext: ExtentFactory,
              int: IntentFactory,
-             strategy: MergeStrategy): Context = {
+             strategy: MergeStrategy,
+             sampling: Sampling): Context = {
     val proc = new SortingProcessor(rows, attributes, sink, int)
     val sorted = rows.map(intent => int.values(proc.preProcess(intent)))
-    Context(sorted, props, attributes, minSupport, stats, proc, ext, int, strategy)
+    Context(sorted, props, attributes, minSupport, stats, proc, ext, int, strategy, sampling)
   }
 }
 
@@ -116,6 +132,7 @@ abstract class Algorithm(context: Context) {
   val int = context.int
   val strategy = context.strategy
   val emptyProperties = new Composite(Seq())
+  val sampling = context.sampling
 
   // filter on extent-intent pair
   def merge(extent: FcaSet, intent: FcaSet): Property = {
@@ -129,7 +146,7 @@ abstract class Algorithm(context: Context) {
   def output(extent: FcaSet, intent: FcaSet):Unit = {
     if (extent.size >= minSupport) {
       val props = merge(extent, intent)
-      if (!props.empty)
+      if (!props.empty && sampling.accept(extent, intent))
         sink(Hypothesis(intent, props))
     }
   }
@@ -161,7 +178,7 @@ trait QueueAlgorithm[T] extends Algorithm {
 }
 
 object Algorithm extends LazyLogging {
-  def apply(name: String, dataStructure: String, strategy: String, intents: Seq[FcaSet], props: Seq[Property], attrs: Int,
+  def apply(name: String, dataStructure: String, strategy: String, threshold: Double, intents: Seq[FcaSet], props: Seq[Property], attrs: Int,
                minSupport: Int, threads: Int, stats:StatsCollector, sink:Sink): Algorithm = {
     val total = intents.foldLeft(0L){(a,b) => a + b.size }
     val density = 100*total / (intents.size * attrs).toDouble
@@ -174,16 +191,20 @@ object Algorithm extends LazyLogging {
       case "votingMajority" => votingMajority _
       case regex(bound) => boundedVotingMajority(bound.toInt) _
     }
+    val sampling = threshold match {
+      case 1.0 => NoSampling
+      case _ => new RandomSampling(threshold)
+    }
     val context = dataStructure match {
       case "sparse" =>
         val intFactory = new SparseBitInt(attrs)
         logger.info("Using sparse data-structure")
         val sparseSets = intents.map(x => SparseBitSet(x))
-        Context.sorted(sparseSets, props, attrs, minSupport, stats, sink, extFactory, intFactory, strat)
+        Context.sorted(sparseSets, props, attrs, minSupport, stats, sink, extFactory, intFactory, strat, sampling)
       case "dense" =>
         logger.info("Using dense data-structure")
         val intFactory = new BitInt(attrs)
-        Context.sorted(intents, props, attrs, minSupport, stats, sink, extFactory, intFactory, strat)
+        Context.sorted(intents, props, attrs, minSupport, stats, sink, extFactory, intFactory, strat, sampling)
     }
     val algo = name match {
       case "cbo" => new CbO(context)

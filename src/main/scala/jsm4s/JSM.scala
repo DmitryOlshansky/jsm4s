@@ -11,18 +11,18 @@ import jsm4s.algorithm.Strategies.MergeStrategy
 
 object JSM extends LazyLogging {
 
-  def generate(input: InputStream, output: OutputStream, algorithm: String, dataStructure: String, strategy: String, minSupport: Int, threads: Int) = {
+  def generate(input: InputStream, output: OutputStream, algorithm: String, dataStructure: String, strategy: String, threshold: Double, minSupport: Int, threads: Int) = {
     val data = FIMI.load(input)
     val sink = new StreamSink(data.header, data.factory, output)
     val stats = new SimpleCollector
     if (strategy == "noop") {
       val groups = data.intents.zip(data.props).groupBy(_._2.key)
       groups.mapValues { g =>
-        Algorithm(algorithm, dataStructure, strategy, g.map(_._1), g.map(_._2), data.attrs, minSupport, threads, stats, sink)
+        Algorithm(algorithm, dataStructure, strategy, threshold, g.map(_._1), g.map(_._2), data.attrs, minSupport, threads, stats, sink)
       }.foreach(_._2.run(false))
       sink.close()
     } else {
-      val jsm = Algorithm(algorithm, dataStructure, strategy, data.intents, data.props, data.attrs, minSupport, threads, stats, sink)
+      val jsm = Algorithm(algorithm, dataStructure, strategy, threshold, data.intents, data.props, data.attrs, minSupport, threads, stats, sink)
       jsm.run()
     }
   }
@@ -50,7 +50,7 @@ object JSM extends LazyLogging {
     finally out.close()
   }
 
-  def jsm(input: File, tau: File, output: File, algorithm: String, dataStructure: String, strategy: String, minSupport: Int,
+  def jsm(input: File, tau: File, output: File, algorithm: String, dataStructure: String, strategy: String, threshold: Double, minSupport: Int,
           threads: Int, debug: Boolean, mergeStrategy: Seq[Property]=>Property) = {
     val training = timeIt("Loading training examples")(FIMI.load(new FileInputStream(input)))
     val examples = timeIt("Loading tau examples")(FIMI.load(new FileInputStream(tau)))
@@ -60,7 +60,7 @@ object JSM extends LazyLogging {
         throw new JsmException(s"Metadata of data sets doesn't match `${training.header}` vs `${examples.header}`")
       val sink = new ArraySink()
       val stats = new SimpleCollector
-      val algo = Algorithm(algorithm, dataStructure, strategy, training.intents, training.props, training.attrs, minSupport, threads, stats, sink)
+      val algo = Algorithm(algorithm, dataStructure, strategy, threshold, training.intents, training.props, training.attrs, minSupport, threads, stats, sink)
       timeIt("Generating hypotheses")(algo.run())
       val hypotheses = sink.hypotheses
       val factory = new Composite.Factory(training.header)
