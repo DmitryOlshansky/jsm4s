@@ -7,12 +7,22 @@ import jsm4s.Utils._
 
 import jsm4s.algorithm._
 import jsm4s.property.{Composite, Property}
+import jsm4s.ds.{ArrayInt, BitInt}
 import jsm4s.algorithm.Strategies.MergeStrategy
 
 object JSM extends LazyLogging {
 
+  private def intentFactoryFactory(dataStructure: String ) =
+    dataStructure match {
+      case "sparse" =>
+        (attrs: Int) => new ArrayInt(attrs) 
+      case "dense" =>
+        (attrs: Int) => new BitInt(attrs)
+    }
+
   def generate(input: InputStream, output: OutputStream, algorithm: String, dataStructure: String, strategy: String, threshold: Double, minSupport: Int, threads: Int) = {
-    val data = FIMI.load(input)
+    val factory = intentFactoryFactory(dataStructure)
+    val data = FIMI.load(input, factory)
     val sink = new StreamSink(data.header, data.factory, output)
     val stats = new SimpleCollector
     if (strategy == "noop") {
@@ -27,9 +37,10 @@ object JSM extends LazyLogging {
     }
   }
 
-  def predict(model: File, tau: File, output: File, debug: Boolean, mergeStrategy: MergeStrategy) = {
-    val hypotheses = timeIt("Loading hypotheses")(FIMI.load(new FileInputStream(model)))
-    val examples = timeIt("Loading examples")(FIMI.load(new FileInputStream(tau)))
+  def predict(model: File, tau: File, output: File, debug: Boolean, dataStructure: String, mergeStrategy: MergeStrategy) = {
+    val factory = intentFactoryFactory(dataStructure)
+    val hypotheses = timeIt("Loading hypotheses")(FIMI.load(new FileInputStream(model), factory))
+    val examples = timeIt("Loading examples")(FIMI.load(new FileInputStream(tau), factory))
     val out = new OutputStreamWriter(new FileOutputStream(output))
     try{
       if (hypotheses.header != examples.header)
@@ -52,8 +63,9 @@ object JSM extends LazyLogging {
 
   def jsm(input: File, tau: File, output: File, algorithm: String, dataStructure: String, strategy: String, threshold: Double, minSupport: Int,
           threads: Int, debug: Boolean, mergeStrategy: Seq[Property]=>Property) = {
-    val training = timeIt("Loading training examples")(FIMI.load(new FileInputStream(input)))
-    val examples = timeIt("Loading tau examples")(FIMI.load(new FileInputStream(tau)))
+    val factory = intentFactoryFactory(dataStructure)
+    val training = timeIt("Loading training examples")(FIMI.load(new FileInputStream(input), factory))
+    val examples = timeIt("Loading tau examples")(FIMI.load(new FileInputStream(tau), factory))
     val out = new OutputStreamWriter(new FileOutputStream(output))
     try {
       if (training.header != examples.header)
@@ -81,9 +93,10 @@ object JSM extends LazyLogging {
     }
   }
 
-  def stats(validation: File, prediction: File) = {
-    val valid = FIMI.load(new FileInputStream(validation))
-    val predicted = FIMI.load(new FileInputStream(prediction))
+  def stats(validation: File, dataStructure: String, prediction: File) = {
+    val factoryFactory = intentFactoryFactory(dataStructure)
+    val valid = FIMI.load(new FileInputStream(validation), factoryFactory)
+    val predicted = FIMI.load(new FileInputStream(prediction), factoryFactory)
     if (valid.header != predicted.header)
       throw new JsmException(s"Metadata of data sets doesn't match `${valid.header}` vs `${predicted.header}`")
     if (valid.props.exists(p => p.tau))

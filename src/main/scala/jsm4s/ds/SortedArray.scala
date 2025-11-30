@@ -1,6 +1,7 @@
 package jsm4s.ds
 
 import java.util.Arrays
+import org.eclipse.collections.api.IntIterable
 
 class SortedArray(var table: Array[Int], var tsize: Int) extends FcaSet with Iterable[Int] {
 
@@ -45,7 +46,11 @@ class SortedArray(var table: Array[Int], var tsize: Int) extends FcaSet with Ite
   }
 
   override def until(j: Int): FcaSet = {
-    new SortedArray(Arrays.copyOf(table, j), j)
+    var x = Arrays.binarySearch(table, 0, tsize, j)
+    if (x < 0) {
+      x = -x-1
+    }
+    new SortedArray(Arrays.copyOf(table, x), x)
   }
 
   override def +=(x: Int): FcaSet = {
@@ -106,6 +111,10 @@ object SortedArray {
     val v = seq.toArray
     new SortedArray(v, v.length)
   }
+  def apply(seq: IntIterable) = {
+    val v = seq.toArray
+    new SortedArray(v, v.length)
+  }
 }
 
 class ArrayExt(val objects: Int) extends ExtentFactory {
@@ -120,4 +129,6 @@ class ArrayInt(val attributes: Int) extends IntentFactory {
   override val full = SortedArray(0.until(attributes))
 
   override def values(seq: Iterable[Int]) = SortedArray(seq)
+
+  override def values(seq: IntIterable) = SortedArray(seq)
 }

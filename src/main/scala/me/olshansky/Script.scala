@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.LazyLogging
 import jsm4s.FIMI
 import jsm4s.Utils._
 import jsm4s.algorithm._
-import jsm4s.ds.FcaSet
+import jsm4s.ds.{FcaSet, BitInt}
 import jsm4s.property.Property
 import scala.util.Random
 
@@ -21,9 +21,9 @@ object Script extends App with LazyLogging {
   val folds = 8
   val algo = "pfcbo"
 
-  val src = FIMI.load(new FileInputStream(s"$dataset-training.dat"))
-  val tau = FIMI.load(new FileInputStream(s"$dataset-tau.dat"))
-  val verify = FIMI.load(new FileInputStream(s"$dataset-verify.dat"))
+  val src = FIMI.load(new FileInputStream(s"$dataset-training.dat"), (x) => new BitInt(x))
+  val tau = FIMI.load(new FileInputStream(s"$dataset-tau.dat"), (x) => new BitInt(x))
+  val verify = FIMI.load(new FileInputStream(s"$dataset-verify.dat"), (x) => new BitInt(x))
   val rng = new Random()
 
   val predictors = 0.until(folds).par.map { _ =>

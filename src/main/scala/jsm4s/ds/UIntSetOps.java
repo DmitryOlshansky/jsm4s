@@ -63,7 +63,7 @@ public class UIntSetOps {
         if(ai == aSize || bi == bSize)
             return ci;
         for(;;){
-            long a0 = a[0], b0 = b[0];
+            long a0 = a[ai], b0 = b[bi];
             if (a0 == b0) {
                 c[ci++] = a0;
                 ai += 1;
@@ -86,12 +86,6 @@ public class UIntSetOps {
     public static int intersect(long[] a, int aSize, long[] b, int bSize, long[] c)
     {
         int ai = 0, bi = 0, ci = 0;
-        /*if(aSize >= 2 && bSize >= 2){
-            Result r = blockwise2(a, aSize, b, bSize, c);
-            ai = r.ai;
-            bi = r.bi;
-            ci = r.ci;
-        }*/
         return serial(a, ai, aSize, b, bi, bSize, c, ci);
     }
 
@@ -100,7 +94,7 @@ public class UIntSetOps {
         if(ai == aSize || bi == bSize)
             return ci;
         for(;;){
-            int a0 = a[0], b0 = b[0];
+            int a0 = a[ai], b0 = b[bi];
             if (a0 == b0) {
                 c[ci++] = a0;
                 ai += 1;

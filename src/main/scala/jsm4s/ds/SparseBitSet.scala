@@ -1,6 +1,7 @@
 package jsm4s.ds
 
 import java.util.Arrays.copyOf
+import org.eclipse.collections.api.IntIterable
 
 class SparseBitSet(var table: Array[Long], var len: Int) extends FcaSet {
 
@@ -228,6 +229,12 @@ object SparseBitSet {
     seq.foreach{ e => set += e }
     set
   }
+
+  def apply(seq: IntIterable) = {
+    val set = SparseBitSet.empty(0)
+    seq.forEach{ e => set += e }
+    set
+  }
 }
 
 
@@ -243,4 +250,5 @@ class SparseBitInt(val attributes: Int) extends IntentFactory {
   override val full = SparseBitSet.full(attributes)
 
   override def values(seq: Iterable[Int]) = SparseBitSet(seq)
+  override def values(seq: IntIterable) = SparseBitSet(seq)
 }

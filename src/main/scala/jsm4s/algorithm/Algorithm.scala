@@ -197,10 +197,9 @@ object Algorithm extends LazyLogging {
     }
     val context = dataStructure match {
       case "sparse" =>
-        val intFactory = new SparseBitInt(attrs)
+        val intFactory = new ArrayInt(attrs)
         logger.info("Using sparse data-structure")
-        val sparseSets = intents.map(x => SparseBitSet(x))
-        Context.sorted(sparseSets, props, attrs, minSupport, stats, sink, extFactory, intFactory, strat, sampling)
+        Context.sorted(intents, props, attrs, minSupport, stats, sink, extFactory, intFactory, strat, sampling)
       case "dense" =>
         logger.info("Using dense data-structure")
         val intFactory = new BitInt(attrs)

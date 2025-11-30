@@ -173,4 +173,6 @@ class BitInt(val attributes: Int) extends IntentFactory {
   val full = BitSet.full(attributes)
 
   override def values(seq: Iterable[Int]) = BitSet(seq, attributes)
+
+  override def values(seq: IntIterable) = BitSet(seq, attributes)
 }

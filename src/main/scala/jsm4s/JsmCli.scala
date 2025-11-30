@@ -23,11 +23,13 @@ object SplitCommand extends Subcommand("split") {
 object TauCommand extends Subcommand("tau") {
   val input = trailArg[File]()
   val output = trailArg[File]()
+  val ds = opt[String](name = "data-structure", default = Some("dense"), descr = "Data structures to use : dense or sparse")
 }
 
 object PredictCommand extends Subcommand("predict") {
   val model = opt[File](short = 'm', descr = "File with model that contains hypotheses")
   val output = opt[File](short = 'o', descr = "Output file with predictions")
+  val ds = opt[String](name = "data-structure", default = Some("dense"), descr = "Data structures to use : dense or sparse")
   val debug = opt[Boolean](short = 'd', descr = "Debug mode - output hypotheses for each example")
   val tau = trailArg[File](descr = "File with Tau examples to predict")
 }
@@ -38,7 +40,7 @@ object GenerateCommand extends Subcommand("generate") {
   val minSupport = opt[Int](name = "support", descr = "Minimum number of objects to support hypothesis")
   val threads = opt[Int](name="t", descr = "Number of threads to use in generation")
   val sample = opt[Double](name="sampling", default = Some(1.0), descr = "Ratio of accepted hypoteses")
-  val ds = opt[String](name = "data-structure", descr = "Data structures to use : dense or sparse")
+  val ds = opt[String](name = "data-structure", default = Some("dense"), descr = "Data structures to use : dense or sparse")
   val model = opt[File](short = 'm', descr = "File to store model in")
   val input = trailArg[File](descr = "Input file with examples to train")
 }
@@ -48,7 +50,7 @@ object JsmCommand extends Subcommand("jsm") {
   val threads = opt[Int](name="t", descr = "Number of threads to use in generation")
   val strategy = opt[String](name = "strategy", default = Some("noCounterExamples"), descr = "One of: noCounterExamples, noop, votingMajority")
   val minSupport = opt[Int](name = "support", descr = "Minimum number of objects to support hypothesis")
-  val ds = opt[String](name = "data-structure", descr = "Data structures to use : dense or sparse")
+  val ds = opt[String](name = "data-structure", default = Some("dense"), descr = "Data structures to use : dense or sparse")
   val sample = opt[Double](name="sampling", default = Some(1.0), descr = "Ratio of accepted hypoteses")
   val output = opt[File](short = 'o', descr = "Output file with predictions")
   val debug = opt[Boolean](short = 'd', descr = "Debug mode - output hypotheses for each example")
@@ -58,6 +60,7 @@ object JsmCommand extends Subcommand("jsm") {
 
 object StatsCommand extends Subcommand("stats") {
   val validation = trailArg[File]()
+  val ds = opt[String](name = "data-structure", default = Some("dense"), descr = "Data structures to use : dense or sparse")
   val prediction = trailArg[File]()
 }
 
@@ -95,7 +98,7 @@ object JsmCli extends LazyLogging {
         timeIt("Generating the model") {
           JSM.generate(input, output,
             g.algorithm.getOrElse(throw new JsmException("no algorithm specified")),
-            "dense",
+            g.ds.getOrElse("dense"),
             g.strategy.getOrElse(throw new JsmException("no strategy specified")),
             g.sample.getOrElse(throw new JsmException("no sampling specified")),
             g.minSupport.getOrElse(2), g.threads.getOrElse(0))
@@ -104,7 +107,7 @@ object JsmCli extends LazyLogging {
       case Some(SplitCommand) =>
         val s = SplitCommand
         val Pattern = "([0-9]+):([0-9]+)".r
-        val Pattern(firstPart, secondPart) = s.ratio.getOrElse(throw new Exception("Ratio is expected in [0-9]+:[0-9]+ form"))
+        val Pattern(firstPart, secondPart) = s.ratio.getOrElse(throw new JsmException("Ratio is expected in [0-9]+:[0-9]+ form"))
         (s.input.toOption, s.first.toOption, s.second.toOption) match {
           case (Some(input), Some(first), Some(second)) =>
             timeIt("Splitting the dataset") {
@@ -126,7 +129,7 @@ object JsmCli extends LazyLogging {
         (r.model.toOption, r.tau.toOption, r.output.toOption) match {
           case (Some(model), Some(tau), Some(output)) =>
             timeIt("Prediction in total") {
-              JSM.predict(model, tau, output, r.debug.getOrElse(false), Strategies.votingMajority)
+              JSM.predict(model, tau, output, r.debug.getOrElse(false), r.ds.getOrElse(throw new JsmException("no data structure specified")), Strategies.votingMajority)
             }
           case _ =>
             logger.error("Too few arguments to predict command")
@@ -138,7 +141,7 @@ object JsmCli extends LazyLogging {
             timeIt("JSM method in total") {
               JSM.jsm(input, tau, output,
                 j.algorithm.getOrElse(throw new JsmException("no algorithm specified")),
-                "dense",
+                j.ds.getOrElse("dense"),
                 j.strategy.getOrElse(throw new JsmException("no strategy specified")),
                 j.sample.getOrElse(throw new JsmException("no sampling specified")),
                 j.minSupport.getOrElse(2), j.threads.getOrElse(0),
@@ -152,7 +155,7 @@ object JsmCli extends LazyLogging {
         (s.validation.toOption, s.prediction.toOption) match {
           case (Some(validation), Some(prediction)) =>
             timeIt("Stats calculation") {
-              JSM.stats(validation, prediction)
+              JSM.stats(validation, s.ds.getOrElse(throw new JsmException("no data structure specified")), prediction)
             }
           case _ =>
             logger.error("Too few arguments to stats command")

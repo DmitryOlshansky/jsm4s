@@ -4,7 +4,7 @@ import java.io._
 
 import com.github.tototoshi.csv.CSVReader
 import jsm4s.attribute.{Attribute, EnumAttribute}
-import jsm4s.ds.{BitSet, FcaSet}
+import jsm4s.ds.{BitSet, FcaSet, IntentFactory}
 import jsm4s.property.{BinaryProperty, OrdinalProperty, Composite, Property, PropertyFactory}
 
 import scala.collection.{Seq, SortedMap, SortedSet, mutable}
@@ -148,18 +148,17 @@ object FIMI {
     finally writer.close()
   }
 
-  def load(in: InputStream): FIMI  = {
+  def load(in: InputStream, factoryFactory: (Int)=>IntentFactory): FIMI  = {
     val lines = Source.fromInputStream(in).getLines()
     val header = lines.next()
     val (attrs, factory) = parseFimiHeader(header)
+    val intFactory = factoryFactory(attrs)
     val intents = mutable.Buffer[FcaSet]()
     val properties = mutable.Buffer[Property]()
     val reader = new FIMILineReader()
     for (line <- lines) {
       reader.read(line)
-      //val parts = line.split(" \\| ")
-      //val attrsIterable = parts(0).trim().split(" ").map(_.toInt)
-      intents += BitSet(reader.attributes, attrs)
+      intents += intFactory.values(reader.attributes)
       properties += factory.encode(reader.properties)
       reader.clear()
     }
