@@ -85,21 +85,12 @@ class SortedArray(var table: Array[Int], var tsize: Int) extends FcaSet with Ite
 
   override def subsetOf(that: FcaSet, k: Int): Boolean = {
     var i = 0
-    var j = 0
     val rhs = that.asInstanceOf[SortedArray]
-    while (i < tsize && j < rhs.tsize && table(i) < k) {
-      if (table(i) == rhs.table(j)) {
-        i += 1
-        j += 1
-      }
-      else if(table(i) < rhs.table(j)) {
-        i += 1
-      }
-      else if(table(i) > rhs.table(j)) {
-        j += 1
-      }
+    while (i < tsize && table(i) < k) {
+      if (!that.contains(table(i))) return false
+      i += 1
     }
-    i == tsize || i == k
+    return true
   }
 
   override def size: Int = tsize
