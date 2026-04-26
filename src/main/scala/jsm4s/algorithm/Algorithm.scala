@@ -8,7 +8,7 @@ import jsm4s.FIMI
 import jsm4s.algorithm.Strategies._
 import jsm4s.ds._
 import jsm4s.processing.SortingProcessor
-import jsm4s.property.{Composite, Property, PropertyFactory}
+import jsm4s.property.{Composite, Property, BinaryProperty, PropertyFactory}
 
 import scala.collection.mutable
 import scala.util.matching.Regex
@@ -139,6 +139,8 @@ abstract class Algorithm(context: Context) {
     if (props.isEmpty) emptyProperties
     else {
       val properties = strategy(extent.map(e => props(e)).toSeq)
+      val s = extent.map(e => props(e).asInstanceOf[BinaryProperty]).toSeq
+      println(s.count(x => x.positive).toString  + " " + s.count(x => x.negative).toString + " " + properties)
       properties
     }
   }

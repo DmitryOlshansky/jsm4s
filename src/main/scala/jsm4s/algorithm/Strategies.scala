@@ -18,13 +18,15 @@ object Strategies {
     ensure (seq.nonEmpty, new JsmException("merge strategies do not accept empty list"))
     seq.head match {
       case _: BinaryProperty  =>
-        var votes = 0
+        var pos = 0
+        var neg = 0
         for(i <- seq.indices) {
-          if (seq(i).asInstanceOf[BinaryProperty].positive) votes += 1
-          else votes -= 1
+          if (seq(i).asInstanceOf[BinaryProperty].positive) pos += 1
+          else neg += 1
         }
-        if (votes > seq.length - bound) BinaryProperty.Positive
-        else if (votes < -seq.length + bound) BinaryProperty.Negative
+        println("votes", pos, neg, seq.length - bound)
+        if (pos >= seq.length - bound && pos > neg) BinaryProperty.Positive
+        else if (neg >= seq.length - bound && neg > pos) BinaryProperty.Negative
         else BinaryProperty.Empty
       case _: OrdinalProperty => 
         if (seq.length > 1) {
@@ -69,8 +71,8 @@ object Strategies {
           if (seq(i).asInstanceOf[BinaryProperty].positive) votes += 1
           else votes -= 1
         }
-        if (votes > seq.length/2) BinaryProperty.Positive
-        else if (votes < -seq.length/2) BinaryProperty.Negative
+        if (votes > 0) BinaryProperty.Positive
+        else if (votes < 0) BinaryProperty.Negative
         else BinaryProperty.Empty
       case _: OrdinalProperty => 
         if (seq.length > 1) {

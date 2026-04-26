@@ -9,6 +9,7 @@ import jsm4s.property.{BinaryProperty, OrdinalProperty, Composite, Property, Pro
 
 import scala.collection.{Seq, SortedMap, SortedSet, mutable}
 import scala.io.Source
+import scala.io.Codec
 import scala.util.Random
 
 import org.eclipse.collections.impl.list.mutable.primitive.IntArrayList
@@ -149,7 +150,7 @@ object FIMI {
   }
 
   def load(in: InputStream, factoryFactory: (Int)=>IntentFactory): FIMI  = {
-    val lines = Source.fromInputStream(in).getLines()
+    val lines = Source.fromInputStream(in)(Codec("UTF-8")).getLines()
     val header = lines.next()
     val (attrs, factory) = parseFimiHeader(header)
     val intFactory = factoryFactory(attrs)
