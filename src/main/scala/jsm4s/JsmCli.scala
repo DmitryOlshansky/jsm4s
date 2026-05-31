@@ -29,6 +29,7 @@ object TauCommand extends Subcommand("tau") {
 object PredictCommand extends Subcommand("predict") {
   val model = opt[File](short = 'm', descr = "File with model that contains hypotheses")
   val output = opt[File](short = 'o', descr = "Output file with predictions")
+  val strategy = opt[String](name = "strategy", default = Some("votingMajority"), descr = "One of: noCounterExamples, noop, votingMajority or boundedVotingMajority:bound")
   val ds = opt[String](name = "data-structure", default = Some("dense"), descr = "Data structures to use : dense or sparse")
   val debug = opt[Boolean](short = 'd', descr = "Debug mode - output hypotheses for each example")
   val tau = trailArg[File](descr = "File with Tau examples to predict")
@@ -107,11 +108,19 @@ object JsmCli extends LazyLogging {
       case Some(SplitCommand) =>
         val s = SplitCommand
         val Pattern = "([0-9]+):([0-9]+)".r
-        val Pattern(firstPart, secondPart) = s.ratio.getOrElse(throw new JsmException("Ratio is expected in [0-9]+:[0-9]+ form"))
+        val Single = "([1-9][0-9]*)".r
+        val (singleR, firstR, secondR) = s.ratio.getOrElse("") match {
+          case Pattern(firstPart, secondPart) => (0, firstPart.toInt, secondPart.toInt)
+          case Single(singlePart) => (singlePart.toInt, 0, 0)
+          case _ => throw new JsmException("Ratio is expected in [0-9]+:[0-9]+ or [1-9][0-9]* form")
+        }
         (s.input.toOption, s.first.toOption, s.second.toOption) match {
           case (Some(input), Some(first), Some(second)) =>
             timeIt("Splitting the dataset") {
-              FIMI.split(input, first, second, firstPart.toInt, secondPart.toInt)
+              if(singleR > 0)
+                FIMI.split(input, first, second, singleR)
+              else
+                FIMI.split(input, first, second, firstR, secondR)
             }
           case _ =>
             logger.error("Too few arguments to split command")

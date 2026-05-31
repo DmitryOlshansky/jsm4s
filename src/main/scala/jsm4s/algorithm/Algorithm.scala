@@ -139,8 +139,6 @@ abstract class Algorithm(context: Context) {
     if (props.isEmpty) emptyProperties
     else {
       val properties = strategy(extent.map(e => props(e)).toSeq)
-      val s = extent.map(e => props(e).asInstanceOf[BinaryProperty]).toSeq
-      println(s.count(x => x.positive).toString  + " " + s.count(x => x.negative).toString + " " + properties)
       properties
     }
   }

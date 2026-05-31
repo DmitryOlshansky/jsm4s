@@ -16,6 +16,8 @@ object Strategies {
 
   def boundedVotingMajority(bound: Int)(seq: Seq[Property]): Property = {
     ensure (seq.nonEmpty, new JsmException("merge strategies do not accept empty list"))
+    ensure (bound >= 0 && bound <= 100, new JsmException("bounded voting majority is percent based"))
+    val ceiling = seq.length * (100.0 - bound) / 100.0
     seq.head match {
       case _: BinaryProperty  =>
         var pos = 0
@@ -24,9 +26,8 @@ object Strategies {
           if (seq(i).asInstanceOf[BinaryProperty].positive) pos += 1
           else neg += 1
         }
-        println("votes", pos, neg, seq.length - bound)
-        if (pos >= seq.length - bound && pos > neg) BinaryProperty.Positive
-        else if (neg >= seq.length - bound && neg > pos) BinaryProperty.Negative
+        if (pos >= ceiling && pos > neg) BinaryProperty.Positive
+        else if (neg >= ceiling && neg > pos) BinaryProperty.Negative
         else BinaryProperty.Empty
       case _: OrdinalProperty => 
         if (seq.length > 1) {

@@ -7,6 +7,7 @@ import jsm4s.attribute.{Attribute, EnumAttribute}
 import jsm4s.ds.{BitSet, FcaSet, IntentFactory}
 import jsm4s.property.{BinaryProperty, OrdinalProperty, Composite, Property, PropertyFactory}
 
+import scala.collection.mutable.ListBuffer
 import scala.collection.{Seq, SortedMap, SortedSet, mutable}
 import scala.io.Source
 import scala.io.Codec
@@ -109,6 +110,27 @@ object FIMI {
     }
     output.close()
   }
+
+  def split(input: File, first: File, second: File, testItems: Int) = {
+    val rnd = new Random()
+    val firstWriter = new OutputStreamWriter(new FileOutputStream(first))
+    val secondWriter = new OutputStreamWriter(new FileOutputStream(second))
+    val lines = Source.fromFile(input).getLines()
+    val header = lines.next()
+    firstWriter.write(header+"\n")
+    secondWriter.write(header+"\n")
+    val all = new ListBuffer[String]
+    lines.foreach(all += _)
+    for (i <- 0 until testItems) {
+      val it = all.remove(rnd.nextInt(all.size))
+      secondWriter.write(it + "\n")
+    }
+    for (line <- all) {
+      firstWriter.write(line + "\n")
+    }
+    firstWriter.close()
+    secondWriter.close()
+  } 
 
   def split(input: File, first: File, second: File, firstPart: Int, secondPart: Int) = {
     val full = firstPart + secondPart
