@@ -42,7 +42,7 @@ object Strategies {
           }
           val votes = h.seq
           val max = votes.maxBy(_._2)
-          if (max._2 > seq.length - bound)
+          if (max._2 > ceiling)
             new OrdinalProperty(max._1)
           else
             OrdinalProperty.Empty
