@@ -133,6 +133,7 @@ abstract class Algorithm(context: Context) {
   val strategy = context.strategy
   val emptyProperties = new Composite(Seq())
   val sampling = context.sampling
+  val emptyAttrs = int.empty
 
   // filter on extent-intent pair
   def merge(extent: FcaSet, intent: FcaSet): Property = {
@@ -146,7 +147,7 @@ abstract class Algorithm(context: Context) {
   def output(extent: FcaSet, intent: FcaSet):Unit = {
     if (extent.size >= minSupport) {
       val props = merge(extent, intent)
-      if (!props.empty && sampling.accept(extent, intent))
+      if (!props.empty && sampling.accept(extent, intent) && !(intent == emptyAttrs))
         sink(Hypothesis(intent, props))
     }
   }
