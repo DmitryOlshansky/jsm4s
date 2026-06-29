@@ -64,12 +64,16 @@ class Predictor(val hypotheses: Seq[Hypothesis], val attrs: Int, factory: Proper
     else collected
   }
 
-  def apply(example: FcaSet): Property = {
+  def matching(example: FcaSet): Seq[Hypothesis] = {
     val hyps = search(example)
-    val matching = hyps.filter {
+    hyps.filter {
       h => h.intent.subsetOf(example, attrs)
     }
-    if (matching.isEmpty) factory.tau
-    else mergeStrategy(matching.map(_.props))
+  }
+
+  def apply(example: FcaSet): Property = {
+    val m = matching(example)
+    if (m.isEmpty) factory.tau
+    else mergeStrategy(m.map(_.props))
   }
 }

@@ -4,7 +4,7 @@ import java.io._
 
 import com.typesafe.scalalogging.LazyLogging
 import jsm4s.Utils._
-
+import collection.mutable
 import jsm4s.algorithm._
 import jsm4s.property.{Composite, Property}
 import jsm4s.ds.{ArrayInt, BitInt}
@@ -51,6 +51,28 @@ object JSM extends LazyLogging {
       val predictions = timeIt("Calculating predictions")(examples.intents.par.map { e => (e, predictor(e)) }).seq
       timeIt("Predictions serialization"){
         for (p <- predictions) out.write(p._1.mkString("", " ", " | ") + hypotheses.factory.decode(p._2) + "\n")
+      }
+    }
+    catch {
+      case e: Exception =>
+        output.delete()
+        throw e
+    }
+    finally out.close()
+  }
+
+  def tune(model: File, train: File, output: File, debug: Boolean, dataStructure: String, mergeStrategy: MergeStrategy) = {
+    val factory = intentFactoryFactory(dataStructure)
+    val hypotheses = timeIt("Loading hypotheses")(FIMI.load(new FileInputStream(model), factory))
+    val trainSet = timeIt("Loading training dataset")(FIMI.load(new FileInputStream(train), factory))
+    val out = new OutputStreamWriter(new FileOutputStream(output))
+    try {
+      out.write(hypotheses.header+"\n")
+      val combined = hypotheses.intents.zip(hypotheses.props).map{ x => Hypothesis(x._1, x._2) }
+      val tuner = new Tuner(combined, hypotheses.attrs, hypotheses.factory, mergeStrategy, trainSet.intents.zip(trainSet.props))
+      val tunned = tuner.tune()
+      for (h <- tunned) {
+        out.write(h.intent.mkString("", " ", " | ") + hypotheses.factory.decode(h.props) + "\n")
       }
     }
     catch {

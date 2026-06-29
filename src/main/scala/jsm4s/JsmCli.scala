@@ -35,6 +35,15 @@ object PredictCommand extends Subcommand("predict") {
   val tau = trailArg[File](descr = "File with Tau examples to predict")
 }
 
+object TuneCommand extends Subcommand("tune") {
+  val model = opt[File](short = 'm', descr = "File with model that contains hypotheses")
+  val output = opt[File](short = 'o', descr = "Output file with predictions")
+  val strategy = opt[String](name = "strategy", default = Some("votingMajority"), descr = "One of: noCounterExamples, noop, votingMajority or boundedVotingMajority:bound")
+  val ds = opt[String](name = "data-structure", default = Some("dense"), descr = "Data structures to use : dense or sparse")
+  val debug = opt[Boolean](short = 'd', descr = "Debug mode - output hypotheses for each example")
+  val train = trailArg[File](descr = "File with train examples to tune on")
+}
+
 object GenerateCommand extends Subcommand("generate") {
   val algorithm = opt[String](default = Some("pfcbo"), short = 'a', descr = "One of: cbo, fcbo, dynsort-cbo, wf-cbo, wf-fcbo")
   val strategy = opt[String](name = "strategy", default = Some("noCounterExamples"), descr = "One of: noCounterExamples, noop, votingMajority or boundedVotingMajority:bound")
@@ -71,6 +80,7 @@ class Config(arguments: Seq[String]) extends ScallopConf(arguments) {
   addSubcommand(TauCommand)
   addSubcommand(GenerateCommand)
   addSubcommand(PredictCommand)
+  addSubcommand(TuneCommand)
   addSubcommand(JsmCommand)
   addSubcommand(StatsCommand)
   verify()
@@ -139,6 +149,16 @@ object JsmCli extends LazyLogging {
           case (Some(model), Some(tau), Some(output)) =>
             timeIt("Prediction in total") {
               JSM.predict(model, tau, output, r.debug.getOrElse(false), r.ds.getOrElse(throw new JsmException("no data structure specified")), Strategies.votingMajority)
+            }
+          case _ =>
+            logger.error("Too few arguments to predict command")
+        }
+      case Some(TuneCommand) =>
+        val r = TuneCommand
+        (r.model.toOption, r.train.toOption, r.output.toOption) match {
+          case (Some(model), Some(train), Some(output)) =>
+            timeIt("Prediction in total") {
+              JSM.tune(model, train, output, r.debug.getOrElse(false), r.ds.getOrElse(throw new JsmException("no data structure specified")), Strategies.votingMajority)
             }
           case _ =>
             logger.error("Too few arguments to predict command")
