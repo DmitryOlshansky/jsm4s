@@ -23,7 +23,6 @@ class Tuner(
         for (p <- predictions) {
             if (p._2 != p._3) {
                 cost += 1000
-                val counts = mutable.HashMap[Property, Int]()
                 for (h <- predictor.matching(p._1)) {
                     if(h.props != p._2) {
                         cost += 1
@@ -34,30 +33,48 @@ class Tuner(
         cost
     }
 
-    def tune(): Seq[Hypothesis] = {
+    def badHypotheses(testHypotheses: Seq[Hypothesis]): Seq[Hypothesis] = {
         val predictor = new Predictor(hypotheses, attrs, factory, mergeStrategy)
         val predictions = train.par.map { e => (e._1, e._2, predictor(e._1)) }.seq
-        val badHypotheses = mutable.Buffer[Hypothesis]()
+        val bads = mutable.Buffer[Hypothesis]()
         for (p <- predictions) {
             if (p._2 != p._3) {
-                val counts = mutable.HashMap[Property, Int]()
                 for (h <- predictor.matching(p._1)) {
                     if(h.props != p._2) {
-                        badHypotheses.append(h)
+                        bads.append(h)
                     }
                 }
             }
         }
-        var curatedHypotheses = hypotheses
-        var bestCost = computeCost(curatedHypotheses)
-        for (i <- badHypotheses.indices) {
-            val bad = badHypotheses(i)
-            val testHypotheses = curatedHypotheses.filter(_ != bad).toSeq
-            val cost = computeCost(testHypotheses)
-            logger.debug("Trying to trim hypothesis {}/{} cost before = {} cost after = {}", i, badHypotheses.size, bestCost, cost)
-            if (cost < bestCost) {
-                bestCost = cost
-                curatedHypotheses = testHypotheses
+        bads
+    }
+
+    def tune(): Seq[Hypothesis] = {
+        var curatedHypotheses = hypotheses.filter { _.intent.count(_ >= 0) > 5 }
+        var process = true
+        while (process) { 
+            var bestCost = computeCost(curatedHypotheses)
+            val startingCost = bestCost
+            var bestSize = Integer.MAX_VALUE
+            val bads = badHypotheses(curatedHypotheses).sortBy { _.intent.count(_ >= 0) }
+            var j = -1
+            for (i <- bads.indices) {
+                val bad = bads(i)
+                val size = bad.intent.count(_ >= 0)
+                val testHypotheses = curatedHypotheses.filter(x => !(x.intent == bad.intent)).toSeq
+                if (testHypotheses.size < curatedHypotheses.size) {
+                    val cost = computeCost(testHypotheses)
+                    if (cost < bestCost || (cost == bestCost && size < bestSize)) {
+                        bestCost = cost
+                        bestSize = size
+                        j = i
+                    }
+                }
+            }
+            if (j == -1 || startingCost < 2500) process = false;
+            else {
+                logger.debug("Trimmed hypothesis cost before = {} cost after = {}", startingCost, bestCost)
+                curatedHypotheses = curatedHypotheses.filter(x => !(x.intent == bads(j).intent)).toSeq
             }
         }
         curatedHypotheses
