@@ -50,7 +50,7 @@ class Tuner(
     }
 
     def tune(): Seq[Hypothesis] = {
-        var curatedHypotheses = hypotheses.filter { _.intent.count(_ >= 0) > 5 }
+        var curatedHypotheses = hypotheses.filter { _.intent.count(_ >= 0) > 4 }
         var process = true
         while (process) { 
             var bestCost = computeCost(curatedHypotheses)
