@@ -49,8 +49,8 @@ class Tuner(
         bads
     }
 
-    def tune(): Seq[Hypothesis] = {
-        var curatedHypotheses = hypotheses.filter { _.intent.count(_ >= 0) > 4 }
+    def tune(attrsCutoff: Int, threshold: Int): Seq[Hypothesis] = {
+        var curatedHypotheses = hypotheses.filter { _.intent.count(_ >= 0) > attrsCutoff }
         var process = true
         while (process) { 
             var bestCost = computeCost(curatedHypotheses)
@@ -71,7 +71,7 @@ class Tuner(
                     }
                 }
             }
-            if (j == -1 || startingCost < 2500) process = false;
+            if (j == -1 || startingCost < threshold * 1000 + 500) process = false;
             else {
                 logger.debug("Trimmed hypothesis cost before = {} cost after = {}", startingCost, bestCost)
                 curatedHypotheses = curatedHypotheses.filter(x => !(x.intent == bads(j).intent)).toSeq

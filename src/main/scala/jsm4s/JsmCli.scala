@@ -38,6 +38,8 @@ object PredictCommand extends Subcommand("predict") {
 object TuneCommand extends Subcommand("tune") {
   val model = opt[File](short = 'm', descr = "File with model that contains hypotheses")
   val output = opt[File](short = 'o', descr = "Output file with predictions")
+  val attrsCutoff = opt[Int](short = 'a', descr = "Attribute level cutoff, only accept larger then this")
+  val threshold = opt[Int](short = 't', descr = "Threshold on number of allowed mispredictions in the training set")
   val strategy = opt[String](name = "strategy", default = Some("votingMajority"), descr = "One of: noCounterExamples, noop, votingMajority or boundedVotingMajority:bound")
   val ds = opt[String](name = "data-structure", default = Some("dense"), descr = "Data structures to use : dense or sparse")
   val debug = opt[Boolean](short = 'd', descr = "Debug mode - output hypotheses for each example")
@@ -158,7 +160,10 @@ object JsmCli extends LazyLogging {
         (r.model.toOption, r.train.toOption, r.output.toOption) match {
           case (Some(model), Some(train), Some(output)) =>
             timeIt("Prediction in total") {
-              JSM.tune(model, train, output, r.debug.getOrElse(false), r.ds.getOrElse(throw new JsmException("no data structure specified")), Strategies.votingMajority)
+              JSM.tune(model, train, output, 
+                r.attrsCutoff.getOrElse(throw new JsmException("no attribute cut off specified")), 
+                r.threshold.getOrElse(throw new JsmException("no hypotheses threshold specified")),
+                r.debug.getOrElse(false), r.ds.getOrElse(throw new JsmException("no data structure specified")), Strategies.votingMajority)
             }
           case _ =>
             logger.error("Too few arguments to predict command")

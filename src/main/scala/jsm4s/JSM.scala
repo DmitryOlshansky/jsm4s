@@ -61,7 +61,8 @@ object JSM extends LazyLogging {
     finally out.close()
   }
 
-  def tune(model: File, train: File, output: File, debug: Boolean, dataStructure: String, mergeStrategy: MergeStrategy) = {
+  def tune(model: File, train: File, output: File, attrsCutoff: Int, threshold: Int, 
+  debug: Boolean, dataStructure: String, mergeStrategy: MergeStrategy) = {
     val factory = intentFactoryFactory(dataStructure)
     val hypotheses = timeIt("Loading hypotheses")(FIMI.load(new FileInputStream(model), factory))
     val trainSet = timeIt("Loading training dataset")(FIMI.load(new FileInputStream(train), factory))
@@ -70,7 +71,7 @@ object JSM extends LazyLogging {
       out.write(hypotheses.header+"\n")
       val combined = hypotheses.intents.zip(hypotheses.props).map{ x => Hypothesis(x._1, x._2) }
       val tuner = new Tuner(combined, hypotheses.attrs, hypotheses.factory, mergeStrategy, trainSet.intents.zip(trainSet.props))
-      val tunned = tuner.tune()
+      val tunned = tuner.tune(attrsCutoff, threshold)
       for (h <- tunned) {
         out.write(h.intent.mkString("", " ", " | ") + hypotheses.factory.decode(h.props) + "\n")
       }
