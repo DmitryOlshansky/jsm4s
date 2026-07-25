@@ -30,6 +30,24 @@ object FIMI {
     (attrsDescr.toInt, PropertyFactory(propertyDescr))
   }
 
+  def random(attributes: Int, objects: Int, density: Double, output: OutputStream) {
+    val header = s"""# attributes: ${attributes} properties: B(1,2)\n"""
+    output.write(header.getBytes("UTF-8"))
+    val rng = new Random()
+    for (obj <- 0 until objects) {
+      val attrs = mutable.ListBuffer[Int]()
+      for (a <- 0 until attributes) {
+        if(rng.nextDouble() < density) {
+          attrs += a
+        }
+      }
+      val prop = rng.nextInt(2) + 1
+      val line = attrs.mkString("", " ", "") + " | " + prop.toString + "\n"
+      output.write(line.getBytes("UTF-8"))
+    }
+    output.close()
+  }
+
   def encode(input: InputStream, output: OutputStream, properties: List[Int]) = {
     val reader = CSVReader.open(new InputStreamReader(input))
     // for each index map of value --> count of records with this value

@@ -20,6 +20,13 @@ object SplitCommand extends Subcommand("split") {
   val second = trailArg[File]()
 }
 
+object RandomCommand extends Subcommand("random") {
+  val output = trailArg[File]()
+  val atttributes = opt[Int](short = 'a', descr = "Number of attributes")
+  val objects = opt[Int](short = 'n', descr = "Number of objects")
+  val density = opt[Double](short = 'p', descr = "Density of context - [0, 1.0]")
+}
+
 object TauCommand extends Subcommand("tau") {
   val input = trailArg[File]()
   val output = trailArg[File]()
@@ -79,6 +86,7 @@ object StatsCommand extends Subcommand("stats") {
 class Config(arguments: Seq[String]) extends ScallopConf(arguments) {
   addSubcommand(EncodeCommand)
   addSubcommand(SplitCommand)
+  addSubcommand(RandomCommand)
   addSubcommand(TauCommand)
   addSubcommand(GenerateCommand)
   addSubcommand(PredictCommand)
@@ -136,6 +144,15 @@ object JsmCli extends LazyLogging {
             }
           case _ =>
             logger.error("Too few arguments to split command")
+        }
+      case Some(RandomCommand) => 
+        val r = RandomCommand
+        (r.atttributes.toOption, r.objects.toOption, r.density.toOption, r.output.toOption) match {
+          case (Some(attrs), Some(objects), Some(density), Some(output)) => timeIt("Random generation") {
+            if (density < 0.0 || density > 1.0) logger.error("Density is out of range")
+            else FIMI.random(attrs, objects, density, new FileOutputStream(output))
+          }
+          case _ => logger.error("Too few arguments to random command")
         }
       case Some(TauCommand) =>
         val t = TauCommand
