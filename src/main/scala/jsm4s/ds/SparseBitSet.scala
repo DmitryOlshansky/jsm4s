@@ -2,6 +2,7 @@ package jsm4s.ds
 
 import java.util.Arrays.copyOf
 import org.eclipse.collections.api.IntIterable
+import org.eclipse.collections.api.iterator.IntIterator
 
 class SparseBitSet(var table: Array[Long], var len: Int) extends FcaSet {
 
@@ -179,6 +180,35 @@ class SparseBitSet(var table: Array[Long], var len: Int) extends FcaSet {
   }
 
   override def iterator: Iterator[Int] = new Iterator[Int] {
+    var i = 0
+    var j = 0
+
+    override def hasNext: Boolean = {
+      while (i != len) {
+        while (j < 32 && (table(i) & (1L << j)) == 0) {
+          j += 1
+        }
+        if (j == 32){
+          i += 1
+          j = 0
+        }
+        else return true
+      }
+      false
+    }
+
+    override def next(): Int = {
+      val ret = (table(i) >>> 32).toInt * 32 + j
+      j += 1
+      if (j == 32) {
+        j = 0
+        i += 1
+      }
+      ret
+    }
+  }
+
+  override def intIterator: IntIterator = new IntIterator {
     var i = 0
     var j = 0
 

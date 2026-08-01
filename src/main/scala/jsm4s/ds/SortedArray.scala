@@ -2,6 +2,7 @@ package jsm4s.ds
 
 import java.util.Arrays
 import org.eclipse.collections.api.IntIterable
+import org.eclipse.collections.api.iterator.IntIterator
 
 class SortedArray(var table: Array[Int], var tsize: Int) extends FcaSet with Iterable[Int] {
 
@@ -10,6 +11,18 @@ class SortedArray(var table: Array[Int], var tsize: Int) extends FcaSet with Ite
   }
 
   override def iterator: Iterator[Int] = new Iterator[Int] {
+    var i = 0
+
+    override def hasNext: Boolean = i != tsize
+
+    override def next(): Int = {
+      val item = table(i)
+      i += 1
+      item
+    }
+  }
+
+  override def intIterator: IntIterator = new IntIterator {
     var i = 0
 
     override def hasNext: Boolean = i != tsize

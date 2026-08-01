@@ -139,7 +139,12 @@ abstract class Algorithm(context: Context) {
   def merge(extent: FcaSet, intent: FcaSet): Property = {
     if (props.isEmpty) emptyProperties
     else {
-      val properties = strategy(extent.map(e => props(e)).toSeq)
+      val buf = mutable.Buffer[Property]()
+      val it = extent.intIterator()
+      while (it.hasNext()) {
+        buf += props(it.next())
+      }
+      val properties = strategy(buf)
       properties
     }
   }
@@ -156,7 +161,9 @@ abstract class Algorithm(context: Context) {
     var C = ext.empty.dup
     var D = int.full.dup
     var cnt = 0
-    for (i <- A) {
+    val it = A.intIterator()
+    while (it.hasNext()) {
+      val i = it.next()
       if (rows(i) contains y) {
         C += i
         D &= rows(i)

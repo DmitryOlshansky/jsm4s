@@ -9,7 +9,7 @@ sbt stage 2>&1
 ATTRS=$1
 OBJS=$2
 DENSITY=$3
-$CMD 'random' -a $ATTRS -n $OBJS -p $DENSITY 'context.fimi'
-for algo in cbo fcbo pcbo pfcbo ; do
+#$CMD 'random' -a $ATTRS -n $OBJS -p $DENSITY 'context.fimi'
+for algo in pfcbo ; do
 $CMD generate -a $algo -m model.fimi context.fimi
 done

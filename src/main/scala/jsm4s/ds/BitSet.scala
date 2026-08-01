@@ -2,6 +2,7 @@ package jsm4s.ds
 
 import java.util.Arrays
 import org.eclipse.collections.api.IntIterable
+import org.eclipse.collections.api.iterator.IntIterator
 
 class BitSet(val table: Array[Int], val length: Int) extends FcaSet with Serializable {
 
@@ -69,6 +70,26 @@ class BitSet(val table: Array[Int], val length: Int) extends FcaSet with Seriali
     }
   }
 
+  override def intIterator: IntIterator = {
+    val len = length
+    new IntIterator {
+      var i = 0
+
+      override def hasNext: Boolean = {
+        while (i < len && (table(i / 32) & (1 << (i % 32))) == 0) {
+          i += 1
+        }
+        i != len
+      }
+
+      override def next(): Int = {
+        val r = i
+        i += 1
+        r
+      }
+    }
+  }
+
   override def ==(set: FcaSet): Boolean = {
     val bitset = set.asInstanceOf[BitSet]
     var i = 0
@@ -109,16 +130,17 @@ class BitSet(val table: Array[Int], val length: Int) extends FcaSet with Seriali
     val bitset = that.asInstanceOf[BitSet]
     val rem = j % 32
     var i = 0
+    var m = true
     while (i < j / 32) {
-      if ((table(i) & bitset.table(i)) != table(i)) return false
+      m &&= (table(i) & bitset.table(i)) == table(i)
       i += 1
     }
     if (rem > 0) {
       val mask = (1 << rem) - 1
       val r = table(j / 32) & mask & bitset.table(j / 32)
-      if (r != (table(j / 32) & mask)) return false
+      m &&= r == (table(j / 32) & mask)
     }
-    true
+    m
   }
 
   override def size = {
