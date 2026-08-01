@@ -108,8 +108,10 @@ class BitSet(val table: Array[Int], val length: Int) extends FcaSet with Seriali
   override def subsetOf(that: FcaSet, j: Int): Boolean = {
     val bitset = that.asInstanceOf[BitSet]
     val rem = j % 32
-    for (i <- 0 until j / 32) {
+    var i = 0
+    while (i < j / 32) {
       if ((table(i) & bitset.table(i)) != table(i)) return false
+      i += 1
     }
     if (rem > 0) {
       val mask = (1 << rem) - 1
