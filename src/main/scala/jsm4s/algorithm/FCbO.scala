@@ -5,19 +5,24 @@ import java.util.concurrent.{ForkJoinPool, TimeUnit}
 import jsm4s.ds.FcaSet
 import java.util.concurrent.atomic.AtomicInteger
 
-abstract class GenericFCbO(context: Context)
-  extends Algorithm(context) with QueueAlgorithm[(FcaSet, FcaSet, Int, Array[FcaSet])] {
+case class ComputeEntry(
+  val extent: FcaSet,
+  val intent: FcaSet,
+  val j: Int,
+  val errors: Array[FcaSet]
+)
 
-  var recDepth = 0
+abstract class GenericFCbO(context: Context)
+  extends Algorithm(context) with QueueAlgorithm[ComputeEntry] {
 
   def method(A: FcaSet, B: FcaSet, y: Int, errors: Array[FcaSet]): Unit = {
-    val q = Array.ofDim[(FcaSet, FcaSet, Int, Array[FcaSet])](attributes - y)
+    val q = Array.ofDim[ComputeEntry](attributes - y)
     var top = 0
     output(A, B)
     val nextErrors = Array.ofDim[FcaSet](attributes)
     var j = y
     while (j < attributes) {
-      nextErrors(j) = errors(j)
+      nextErrors(j) = errors(j) 
       if (!B.contains(j)) {
         if (errors(j).subsetOf(B, j)) {
           val ret = closeConcept(A, j)
@@ -26,7 +31,7 @@ abstract class GenericFCbO(context: Context)
             val C = ret._2
             val D = ret._3
             if (B.equalUpTo(D, j)) {
-              q(top) = (C, D, j + 1, nextErrors)
+              q(top) = ComputeEntry(C, D, j + 1, nextErrors)
               top += 1
             }
             else {
@@ -38,13 +43,11 @@ abstract class GenericFCbO(context: Context)
       }
       j += 1
     }
-    recDepth += 1
     var k = 0
     while (k < top) {
       processQueue(q(k))
       k += 1
     }
-    recDepth -= 1
   }
 
   override def perform = {
@@ -57,8 +60,8 @@ abstract class GenericFCbO(context: Context)
 }
 
 class FCbO(context: Context)  extends GenericFCbO(context) {
-  def processQueue(x: (FcaSet, FcaSet, Int, Array[FcaSet])): Unit = {
-    method(x._1, x._2, x._3, x._4)
+  def processQueue(x: ComputeEntry): Unit = {
+    method(x.extent, x.intent, x.j, x.errors)
   }
 }
 
@@ -67,17 +70,17 @@ class PFCbO(context: Context, threads: Int) extends GenericFCbO(context)  {
   private val cores = pool.getParallelism()
   private val submitted = new AtomicInteger(0)
 
-  override def processQueue(tup: (FcaSet,FcaSet,Int,Array[FcaSet])) = {
+  override def processQueue(entry: ComputeEntry) = {
     if (submitted.get() < cores * 4) {
       submitted.incrementAndGet()
       pool.submit(new Runnable {
         override def run(): Unit = {
           submitted.decrementAndGet()
-          method(tup._1, tup._2, tup._3, tup._4)
+          method(entry.extent, entry.intent, entry.j, entry.errors)
         }
       })
     } else {
-      method(tup._1, tup._2, tup._3, tup._4)
+      method(entry.extent, entry.intent, entry.j, entry.errors)
     }
   }
 
