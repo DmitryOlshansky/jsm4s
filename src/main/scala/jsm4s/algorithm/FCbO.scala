@@ -27,9 +27,9 @@ abstract class GenericFCbO(context: Context)
         if (errors(j).subsetOf(B, j)) {
           val ret = closeConcept(A, j)
           stats.onClosure()
-          if (ret._1) {
-            val C = ret._2
-            val D = ret._3
+          if (ret.hasSupport) {
+            val C = ret.extent
+            val D = ret.intent
             if (B.equalUpTo(D, j)) {
               q(top) = ComputeEntry(C, D, j + 1, nextErrors)
               top += 1

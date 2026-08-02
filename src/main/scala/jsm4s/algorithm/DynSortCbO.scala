@@ -24,9 +24,9 @@ class DynSortCbO(context: Context) extends Algorithm(context) {
         if (!B.contains(y)) {
           val ret = closeConcept(A, y)
           stats.onClosure()
-          if (ret._1) {
-            val C = ret._2
-            val D = ret._3
+          if (ret.hasSupport) {
+            val C = ret.extent
+            val D = ret.intent
             if (B.equalWithMask(D, visited)) {
               visited += y
               method(C, D, visited.dup, shuffled.slice(j + 1, shuffled.length))

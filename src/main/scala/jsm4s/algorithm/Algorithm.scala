@@ -93,6 +93,8 @@ class RandomSampling(val threshold: Double) extends Sampling {
     ThreadLocalRandom.current().nextDouble < threshold
 }
 
+case class ConceptClosure(val hasSupport: Boolean, val extent: FcaSet, val intent: FcaSet)
+
 case class Context(rows: Seq[FcaSet],
                    props: Seq[Property],
                    attributes: Int,
@@ -170,7 +172,7 @@ abstract class Algorithm(context: Context) {
         cnt += 1
       }
     }
-    (cnt >= minSupport, C, D)
+    ConceptClosure(cnt >= minSupport, C, D)
   }
 
   def perform(): Unit

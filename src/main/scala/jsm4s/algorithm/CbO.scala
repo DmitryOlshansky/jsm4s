@@ -15,9 +15,9 @@ class CbO(context: Context) extends Algorithm(context) {
       if (!B.contains(j)) {
         val ret = closeConcept(A, j)
         stats.onClosure()
-        if (ret._1) {
-          val C = ret._2
-          val D = ret._3
+        if (ret.hasSupport) {
+          val C = ret.extent
+          val D = ret.intent
           if (B.equalUpTo(D, j)) method(C, D, j + 1)
           else stats.onCanonicalTestFailure()
         }
@@ -39,27 +39,31 @@ class PCbO(context: Context, threads: Int) extends Algorithm(context) {
   private val cores = pool.getParallelism()
   private val submitted = new AtomicInteger(0)
   
+  def recurse(C: FcaSet, D: FcaSet, j: Int) {
+    if (submitted.get() > cores * 4) {
+      method(C, D, j + 1)
+    } else {
+      submitted.incrementAndGet()
+      pool.submit(new Runnable {
+        override def run(): Unit = {
+          submitted.decrementAndGet()
+          method(C, D, j + 1)
+        }
+      })
+    }
+  }
+
   def method(A: FcaSet, B: FcaSet, y: Int): Unit = {
     output(A, B)
     var j = y
     while(j < attributes) {
       if (!B.contains(j)) {
         val ret = closeConcept(A, j)
-        if (ret._1) {
-          val C = ret._2
-          val D = ret._3
+        if (ret.hasSupport) {
+          val C = ret.extent
+          val D = ret.intent
           if (B.equalUpTo(D, j)) {
-            if (submitted.get() > cores * 2) {
-              method(C, D, j + 1)
-            } else {
-              submitted.incrementAndGet()
-              pool.submit(new Runnable {
-                override def run(): Unit = {
-                  submitted.decrementAndGet()
-                  method(C, D, j + 1)
-                }
-              })
-            }
+            recurse(C, D, j)
           }
           else stats.onCanonicalTestFailure()
         }
