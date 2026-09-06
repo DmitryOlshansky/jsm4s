@@ -23,7 +23,7 @@ object JSM extends LazyLogging {
   def generate(input: InputStream, output: OutputStream, algorithm: String, dataStructure: String, strategy: String, threshold: Double, minSupport: Int, threads: Int) = {
     val factory = intentFactoryFactory(dataStructure)
     val data = FIMI.load(input, factory)
-    val sink = new StreamSink(data.header, data.factory, output)
+    val sink = NullSink //new StreamSink(data.header, data.factory, output)
     val stats = new SimpleCollector
     if (strategy == "noop") {
       val groups = data.intents.zip(data.props).groupBy(_._2.key)

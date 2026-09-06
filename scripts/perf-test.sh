@@ -10,6 +10,10 @@ ATTRS=$1
 OBJS=$2
 DENSITY=$3
 $CMD 'random' -a $ATTRS -n $OBJS -p $DENSITY 'context.fimi'
-for algo in cbo fcbo pcbo pfcbo ; do
-$CMD generate -a $algo -m model-$algo.fimi context.fimi
+export JAVA_OPTS="-Xmx1g -Xms1g -XX:+UseZGC"
+for t in `seq 2 8` ; do 
+    for algo in pcbo fjcbo ; do
+        echo "Running $algo with threads = $t..."
+        $CMD generate -t $t -a $algo -m model.fimi context.fimi
+    done
 done

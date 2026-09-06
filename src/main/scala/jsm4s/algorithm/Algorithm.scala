@@ -80,6 +80,13 @@ class ArraySink extends Sink {
   def hypotheses:Seq[Hypothesis] = buffer
 }
 
+object NullSink extends Sink {
+  override def apply(h: Hypothesis) {
+
+  }
+  override def close(): Unit = {}
+}
+
 trait Sampling {
   def accept(ext: FcaSet, int: FcaSet): Boolean
 }
@@ -218,10 +225,11 @@ object Algorithm extends LazyLogging {
     val algo = name match {
       case "cbo" => new CbO(context)
       case "fcbo" => new FCbO(context)
-      case "pcbo" =>
-        new PCbO(context, threads)
-      case "pfcbo" =>
-        new PFCbO(context, threads)
+      case "pcbo" => new PCbO(context, threads)
+      case "fjcbo" =>
+        new FJCbO(context, threads)
+      case "fjfcbo" =>
+        new FJFCbO(context, threads)
       case "dynsort-cbo" =>
         new DynSortCbO(context)
       case _ => throw new Exception(s"No algorithm ${name} is supported")

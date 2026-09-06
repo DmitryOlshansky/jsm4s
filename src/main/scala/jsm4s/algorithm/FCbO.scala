@@ -65,13 +65,13 @@ class FCbO(context: Context)  extends GenericFCbO(context) {
   }
 }
 
-class PFCbO(context: Context, threads: Int) extends GenericFCbO(context)  { 
+class FJFCbO(context: Context, threads: Int) extends GenericFCbO(context)  { 
   private val pool = if (threads == 0) ForkJoinPool.commonPool else new ForkJoinPool(threads)
   private val cores = pool.getParallelism()
   private val submitted = new AtomicInteger(0)
 
   override def processQueue(entry: ComputeEntry) = {
-    if (submitted.get() < cores * 4) {
+    if (submitted.get() < cores * 16) {
       submitted.incrementAndGet()
       pool.submit(new Runnable {
         override def run(): Unit = {
@@ -85,7 +85,12 @@ class PFCbO(context: Context, threads: Int) extends GenericFCbO(context)  {
   }
 
   override def perform = {
-    super.perform()
+    val fn = () => super.perform()
+    pool.submit(new Runnable() {
+      def run() {
+        fn()
+      }
+    })
     pool.awaitQuiescence(1000, TimeUnit.DAYS)
   }
 }

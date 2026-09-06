@@ -34,6 +34,63 @@ class CbO(context: Context) extends Algorithm(context) {
 }
 
 class PCbO(context: Context, threads: Int) extends Algorithm(context) {
+  private val pool = if (threads == 0) ForkJoinPool.commonPool else new ForkJoinPool(threads)
+
+  def distribute(A: FcaSet, B: FcaSet, y: Int): Unit = {
+    output(A, B)
+    var j = y
+    while(j < attributes) {
+      if (!B.contains(j)) {
+        val ret = closeConcept(A, j)
+        if (ret.hasSupport) {
+          val C = ret.extent
+          val D = ret.intent
+          if (B.equalUpTo(D, j)) {
+            enqueue(C, D, j)
+          }
+          else stats.onCanonicalTestFailure()
+        }
+      }
+      j += 1
+    }
+  }
+
+  def enqueue(A: FcaSet, B: FcaSet, y: Int): Unit = {
+    pool.submit(new Runnable {
+      def run() {
+        method(A, B, y)
+      }
+    })
+  }
+
+  def method(A: FcaSet, B: FcaSet, y: Int): Unit = {
+    output(A, B)
+    var j = y
+    while(j < attributes) {
+      if (!B.contains(j)) {
+        val ret = closeConcept(A, j)
+        if (ret.hasSupport) {
+          val C = ret.extent
+          val D = ret.intent
+          if (B.equalUpTo(D, j)) {
+            method(C, D, j)
+          }
+          else stats.onCanonicalTestFailure()
+        }
+      }
+      j += 1
+    }
+  }
+
+  override def perform = {
+    val A = ext.full
+    val B = rows.fold(int.full)((a, b) => a & b) // full intersection
+    distribute(A, B, 0)
+    pool.awaitQuiescence(1000, TimeUnit.DAYS)
+  }
+}
+
+class FJCbO(context: Context, threads: Int) extends Algorithm(context) {
 
   private val pool = if (threads == 0) ForkJoinPool.commonPool else new ForkJoinPool(threads)
   private val cores = pool.getParallelism()
