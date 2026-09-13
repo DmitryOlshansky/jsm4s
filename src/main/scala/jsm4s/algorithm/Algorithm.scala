@@ -226,6 +226,7 @@ object Algorithm extends LazyLogging {
       case "cbo" => new CbO(context)
       case "fcbo" => new FCbO(context)
       case "pcbo" => new PCbO(context, threads)
+      case "pfcbo" => new PFCbO(context, threads)
       case "fjcbo" =>
         new FJCbO(context, threads)
       case "fjfcbo" =>

@@ -9,13 +9,14 @@ case class ComputeEntry(
   val extent: FcaSet,
   val intent: FcaSet,
   val j: Int,
-  val errors: Array[FcaSet]
+  val errors: Array[FcaSet],
+  val recDepth: Int
 )
 
 abstract class GenericFCbO(context: Context)
   extends Algorithm(context) with QueueAlgorithm[ComputeEntry] {
 
-  def method(A: FcaSet, B: FcaSet, y: Int, errors: Array[FcaSet]): Unit = {
+  def method(A: FcaSet, B: FcaSet, y: Int, errors: Array[FcaSet], recDepth: Int): Unit = {
     val q = Array.ofDim[ComputeEntry](attributes - y)
     var top = 0
     output(A, B)
@@ -31,7 +32,7 @@ abstract class GenericFCbO(context: Context)
             val C = ret.extent
             val D = ret.intent
             if (B.equalUpTo(D, j)) {
-              q(top) = ComputeEntry(C, D, j + 1, nextErrors)
+              q(top) = ComputeEntry(C, D, j + 1, nextErrors, recDepth)
               top += 1
             }
             else {
@@ -55,13 +56,39 @@ abstract class GenericFCbO(context: Context)
     val B = rows.fold(int.full)((a, b) => a & b) // full intersection
     val implied = Array.ofDim[FcaSet](attributes)
     for (i <- 0 until attributes) implied(i) = int.empty
-    method(A, B, 0, implied)
+    method(A, B, 0, implied, 0)
   }
 }
 
 class FCbO(context: Context)  extends GenericFCbO(context) {
   def processQueue(x: ComputeEntry): Unit = {
-    method(x.extent, x.intent, x.j, x.errors)
+    method(x.extent, x.intent, x.j, x.errors, x.recDepth+1)
+  }
+}
+
+class PFCbO(context: Context, threads: Int) extends GenericFCbO(context)  { 
+  private val pool = if (threads == 0) ForkJoinPool.commonPool else new ForkJoinPool(threads)
+  
+  override def processQueue(entry: ComputeEntry) = {
+    if (entry.recDepth < 2) {
+      pool.submit(new Runnable {
+        override def run(): Unit = {
+          method(entry.extent, entry.intent, entry.j, entry.errors, entry.recDepth+1)
+        }
+      })
+    } else {
+      method(entry.extent, entry.intent, entry.j, entry.errors, entry.recDepth+1)
+    }
+  }
+
+  override def perform = {
+    val fn = () => super.perform()
+    pool.submit(new Runnable() {
+      def run() {
+        fn()
+      }
+    })
+    pool.awaitQuiescence(1000, TimeUnit.DAYS)
   }
 }
 
@@ -76,11 +103,11 @@ class FJFCbO(context: Context, threads: Int) extends GenericFCbO(context)  {
       pool.submit(new Runnable {
         override def run(): Unit = {
           submitted.decrementAndGet()
-          method(entry.extent, entry.intent, entry.j, entry.errors)
+          method(entry.extent, entry.intent, entry.j, entry.errors, entry.recDepth+1)
         }
       })
     } else {
-      method(entry.extent, entry.intent, entry.j, entry.errors)
+      method(entry.extent, entry.intent, entry.j, entry.errors, entry.recDepth+1)
     }
   }
 
