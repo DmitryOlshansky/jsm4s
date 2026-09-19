@@ -39,6 +39,19 @@ object JSM extends LazyLogging {
     }
   }
 
+  def generateSplit(input: InputStream, output: OutputStream, algorithm: String, dataStructure: String, strategy: String, threshold: Double, minSupport: Int, threads: Int, splits: Int) = {
+    val factory = intentFactoryFactory(dataStructure)
+    val data = FIMI.load(input, factory)
+    val sink = new StreamSink(data.header, data.factory, output)
+    val stats = new SimpleCollector
+    val ctxes = Context.mkSplitContext(dataStructure, strategy, threshold, data.intents, data.props, data.attrs, minSupport, stats, sink, splits)
+    for (ctx <- ctxes) {
+      val jsm = Algorithm(algorithm, ctx, threads)
+      jsm.run(false)
+    }
+    sink.close()
+  }
+
   def predict(model: File, tau: File, output: File, debug: Boolean, dataStructure: String, mergeStrategy: MergeStrategy) = {
     val factory = intentFactoryFactory(dataStructure)
     val hypotheses = timeIt("Loading hypotheses")(FIMI.load(new FileInputStream(model), factory))

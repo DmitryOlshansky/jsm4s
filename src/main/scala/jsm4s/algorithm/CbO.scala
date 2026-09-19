@@ -29,7 +29,7 @@ class CbO(context: Context) extends Algorithm(context) {
   override def perform = {
     val A = ext.full
     val B = rows.fold(int.full)((a, b) => a & b) // full intersection
-    method(A, B, 0)
+    method(A, B, context.first)
   }
 }
 

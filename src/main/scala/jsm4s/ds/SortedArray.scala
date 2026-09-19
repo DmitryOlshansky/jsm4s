@@ -125,6 +125,8 @@ class ArrayExt(val objects: Int) extends ExtentFactory {
   override val empty = SortedArray.empty
   override val full = SortedArray(0.until(objects))
 
+  override def split(objs: Int) = new ArrayExt(objs)
+
   override def values(seq: Iterable[Int]) = SortedArray(seq)
 }
 

@@ -189,6 +189,8 @@ class BitExt(val objects: Int) extends ExtentFactory {
   val empty = BitSet.empty(objects)
   val full = BitSet.full(objects)
 
+  override def split(objs: Int) = new BitExt(objs)
+
   override def values(seq: Iterable[Int]) = BitSet(seq, objects)
 }
 

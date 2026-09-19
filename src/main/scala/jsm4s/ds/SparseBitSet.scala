@@ -272,6 +272,8 @@ class SparseBitExt(val objects: Int) extends ExtentFactory {
   override val empty = SparseBitSet.empty(objects)
   override val full = SparseBitSet.full(objects)
 
+  override def split(objs: Int) = new SparseBitExt(objs)
+
   override def values(seq: Iterable[Int]) = SparseBitSet(seq)
 }
 

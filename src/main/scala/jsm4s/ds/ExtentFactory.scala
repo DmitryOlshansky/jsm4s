@@ -12,5 +12,7 @@ trait ExtentFactory {
 
   def full: FcaSet
 
+  def split(objects: Int): ExtentFactory
+
   def values(x: Iterable[Int]): FcaSet
 }

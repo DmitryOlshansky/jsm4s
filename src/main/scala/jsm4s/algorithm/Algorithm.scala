@@ -114,6 +114,8 @@ class Context(val rows: Seq[FcaSet],
               val sampling: Sampling) {
 
   def isValid(intent: FcaSet) = true
+  def first: Int = 0
+  def last: Int = attributes
 }
 
 class PartitionedContext(
@@ -127,6 +129,8 @@ class PartitionedContext(
                         int: IntentFactory,
                         strategy: MergeStrategy,
                         sampling: Sampling,
+                        override val first: Int,
+                        override val last: Int,
                         val partition: FcaSet) extends Context(rows, props, attributes, minSupport, stats, sink, ext, int, strategy, sampling) {
 
   override def isValid(intent: FcaSet): Boolean = (partition & intent).size != 0
@@ -166,7 +170,7 @@ object Context extends LazyLogging {
       val end = (p + 1) * attributes / parts
       val ownAttrs = int.values(start until end)
       val sortedPart = sorted.zip(props).filter(p => (p._1 & ownAttrs).size != 0)
-      new PartitionedContext(sortedPart.map(_._1), sortedPart.map(_._2), attributes, minSupport, stats, sink, ext, int, strategy, sampling, ownAttrs)
+      new PartitionedContext(sortedPart.map(_._1), sortedPart.map(_._2), attributes, minSupport, stats, proc, ext.split(sortedPart.size), int, strategy, sampling, start, end, ownAttrs)
     }
     
     partitions
@@ -176,6 +180,11 @@ object Context extends LazyLogging {
                minSupport: Int, stats:StatsCollector, sink:Sink) =
     createContext(dataStructure, strategy, threshold, intents, props, attrs, minSupport, stats, sink, Context.sorted _)
   
+  def mkSplitContext(dataStructure: String, strategy: String, threshold: Double, intents: Seq[FcaSet], props: Seq[Property], attrs: Int,
+               minSupport: Int, stats:StatsCollector, sink:Sink, parts: Int) =
+    createContext(dataStructure, strategy, threshold, intents, props, attrs, minSupport, stats, sink, 
+      (rows, props, attrs, minSupport, stats, sink, ext, int, strategy, sampling) => Context.partitioned(rows, props, attrs, minSupport, stats, sink, ext, int, strategy, sampling, parts))
+
   def createContext[T](dataStructure: String, strategy: String, threshold: Double, intents: Seq[FcaSet], props: Seq[Property], attrs: Int,
                minSupport: Int, stats:StatsCollector, sink:Sink, 
                creator: (Seq[FcaSet], Seq[Property], Int, Int, StatsCollector, Sink, 

@@ -64,6 +64,19 @@ object GenerateCommand extends Subcommand("generate") {
   val input = trailArg[File](descr = "Input file with examples to train")
 }
 
+object GenerateSplitCommand extends Subcommand("generate-split") {
+  val algorithm = opt[String](default = Some("pfcbo"), short = 'a', descr = "One of: cbo, fcbo, dynsort-cbo, wf-cbo, wf-fcbo")
+  val strategy = opt[String](name = "strategy", default = Some("noCounterExamples"), descr = "One of: noCounterExamples, noop, votingMajority or boundedVotingMajority:bound")
+  val minSupport = opt[Int](name = "support", descr = "Minimum number of objects to support hypothesis")
+  val threads = opt[Int](name="t", descr = "Number of threads to use in generation")
+  val sample = opt[Double](name="sampling", default = Some(1.0), descr = "Ratio of accepted hypoteses")
+  val ds = opt[String](name = "data-structure", default = Some("dense"), descr = "Data structures to use : dense or sparse")
+  val model = opt[File](short = 'm', descr = "File to store model in")
+  val input = trailArg[File](descr = "Input file with examples to train")
+  val splits = opt[Int](short = 's', descr = "Number of split contexts")
+}
+
+
 object JsmCommand extends Subcommand("jsm") {
   val algorithm = opt[String](default = Some("pfcbo"), short = 'a', descr = "One of: cbo, fcbo, dynsort-cbo, pcbo, pfcbo")
   val threads = opt[Int](name="t", descr = "Number of threads to use in generation")
@@ -89,6 +102,7 @@ class Config(arguments: Seq[String]) extends ScallopConf(arguments) {
   addSubcommand(RandomCommand)
   addSubcommand(TauCommand)
   addSubcommand(GenerateCommand)
+  addSubcommand(GenerateSplitCommand)
   addSubcommand(PredictCommand)
   addSubcommand(TuneCommand)
   addSubcommand(JsmCommand)
@@ -124,7 +138,21 @@ object JsmCli extends LazyLogging {
             g.sample.getOrElse(throw new JsmException("no sampling specified")),
             g.minSupport.getOrElse(2), g.threads.getOrElse(0))
         }
-
+      case Some(GenerateSplitCommand) => 
+        val g = GenerateSplitCommand
+        val output = g.model.map(f => new FileOutputStream(f).asInstanceOf[OutputStream])
+          .getOrElse(System.out)
+        val input = g.input.map(f => new FileInputStream(f).asInstanceOf[InputStream])
+          .getOrElse(System.in)
+        timeIt("Generating the model") {
+          JSM.generateSplit(input, output,
+            g.algorithm.getOrElse(throw new JsmException("no algorithm specified")),
+            g.ds.getOrElse("dense"),
+            g.strategy.getOrElse(throw new JsmException("no strategy specified")),
+            g.sample.getOrElse(throw new JsmException("no sampling specified")),
+            g.minSupport.getOrElse(2), g.threads.getOrElse(0), 
+            g.splits.getOrElse(throw new JsmException("no splits specified")))
+        }
       case Some(SplitCommand) =>
         val s = SplitCommand
         val Pattern = "([0-9]+):([0-9]+)".r
