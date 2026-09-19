@@ -23,16 +23,18 @@ object JSM extends LazyLogging {
   def generate(input: InputStream, output: OutputStream, algorithm: String, dataStructure: String, strategy: String, threshold: Double, minSupport: Int, threads: Int) = {
     val factory = intentFactoryFactory(dataStructure)
     val data = FIMI.load(input, factory)
-    val sink = NullSink //new StreamSink(data.header, data.factory, output)
+    val sink = new StreamSink(data.header, data.factory, output)
     val stats = new SimpleCollector
     if (strategy == "noop") {
       val groups = data.intents.zip(data.props).groupBy(_._2.key)
       groups.mapValues { g =>
-        Algorithm(algorithm, dataStructure, strategy, threshold, g.map(_._1), g.map(_._2), data.attrs, minSupport, threads, stats, sink)
+        val ctx = Context.mkSingleContext(dataStructure, strategy, threshold, g.map(_._1), g.map(_._2), data.attrs, minSupport, stats, sink)
+        Algorithm(algorithm, ctx, threads)
       }.foreach(_._2.run(false))
       sink.close()
     } else {
-      val jsm = Algorithm(algorithm, dataStructure, strategy, threshold, data.intents, data.props, data.attrs, minSupport, threads, stats, sink)
+      val ctx = Context.mkSingleContext(dataStructure, strategy, threshold, data.intents, data.props, data.attrs, minSupport, stats, sink)
+      val jsm = Algorithm(algorithm, ctx, threads)
       jsm.run()
     }
   }
@@ -95,7 +97,8 @@ object JSM extends LazyLogging {
         throw new JsmException(s"Metadata of data sets doesn't match `${training.header}` vs `${examples.header}`")
       val sink = new ArraySink()
       val stats = new SimpleCollector
-      val algo = Algorithm(algorithm, dataStructure, strategy, threshold, training.intents, training.props, training.attrs, minSupport, threads, stats, sink)
+      val ctx = Context.mkSingleContext(dataStructure, strategy, threshold, training.intents, training.props, training.attrs, minSupport, stats, sink)
+      val algo = Algorithm(algorithm, ctx, threads)
       timeIt("Generating hypotheses")(algo.run())
       val hypotheses = sink.hypotheses
       val factory = new Composite.Factory(training.header)

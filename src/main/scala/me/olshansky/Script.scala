@@ -33,7 +33,8 @@ object Script extends App with LazyLogging {
     val sampled = rng.shuffle(0.until(size).toList).slice(0, size / folds)
     val subset = FIMI(sampled.map(src.intents), sampled.map(src.props), src.header, src.attrs, src.factory)
     timeIt("Generation of a fold model") {
-      Algorithm(algo, "dense", "noCounterExamples", 1.0, subset.intents, subset.props, subset.attrs, 2, 0, stats, sink).run()
+      val ctx = Context.mkSingleContext("dense", "noCounterExamples", 1.0, subset.intents, subset.props, subset.attrs, 2, stats, sink)
+      Algorithm(algo, ctx, 1).run()
     }
     new Predictor(sink.hypotheses, src.attrs, src.factory, Strategies.votingMajority)
   }.seq

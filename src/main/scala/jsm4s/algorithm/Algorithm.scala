@@ -102,18 +102,37 @@ class RandomSampling(val threshold: Double) extends Sampling {
 
 case class ConceptClosure(val hasSupport: Boolean, val extent: FcaSet, val intent: FcaSet)
 
-case class Context(rows: Seq[FcaSet],
-                   props: Seq[Property],
-                   attributes: Int,
-                   minSupport: Int,
-                   stats: StatsCollector,
-                   sink: Sink,
-                   ext: ExtentFactory,
-                   int: IntentFactory,
-                   strategy: MergeStrategy,
-                   sampling: Sampling)
+class Context(val rows: Seq[FcaSet],
+              val props: Seq[Property],
+              val attributes: Int,
+              val minSupport: Int,
+              val stats: StatsCollector,
+              val sink: Sink,
+              val ext: ExtentFactory,
+              val int: IntentFactory,
+              val strategy: MergeStrategy,
+              val sampling: Sampling) {
 
-object Context {
+  def isValid(intent: FcaSet) = true
+}
+
+class PartitionedContext(
+                        rows: Seq[FcaSet],
+                        props: Seq[Property],
+                        attributes: Int,
+                        minSupport: Int,
+                        stats: StatsCollector,
+                        sink: Sink,
+                        ext: ExtentFactory,
+                        int: IntentFactory,
+                        strategy: MergeStrategy,
+                        sampling: Sampling,
+                        val partition: FcaSet) extends Context(rows, props, attributes, minSupport, stats, sink, ext, int, strategy, sampling) {
+
+  override def isValid(intent: FcaSet): Boolean = (partition & intent).size != 0
+}
+
+object Context extends LazyLogging {
   def sorted(rows: Seq[FcaSet],
              props: Seq[Property],
              attributes: Int,
@@ -126,7 +145,67 @@ object Context {
              sampling: Sampling): Context = {
     val proc = new SortingProcessor(rows, attributes, sink, int)
     val sorted = rows.map(intent => int.values(proc.preProcess(intent)))
-    Context(sorted, props, attributes, minSupport, stats, proc, ext, int, strategy, sampling)
+    new Context(sorted, props, attributes, minSupport, stats, proc, ext, int, strategy, sampling)
+  }
+
+  def partitioned(rows: Seq[FcaSet],
+                  props: Seq[Property],
+                  attributes: Int,
+                  minSupport: Int,
+                  stats: StatsCollector,
+                  sink: Sink,
+                  ext: ExtentFactory,
+                  int: IntentFactory,
+                  strategy: MergeStrategy,
+                  sampling: Sampling,
+                  parts: Int): Seq[PartitionedContext] = {
+    val proc = new SortingProcessor(rows, attributes, sink, int)
+    val sorted = rows.map(intent => int.values(proc.preProcess(intent)))
+    val partitions = (0 until parts).map { p =>
+      val start = p * attributes / parts
+      val end = (p + 1) * attributes / parts
+      val ownAttrs = int.values(start until end)
+      val sortedPart = sorted.zip(props).filter(p => (p._1 & ownAttrs).size != 0)
+      new PartitionedContext(sortedPart.map(_._1), sortedPart.map(_._2), attributes, minSupport, stats, sink, ext, int, strategy, sampling, ownAttrs)
+    }
+    
+    partitions
+  }
+
+  def mkSingleContext(dataStructure: String, strategy: String, threshold: Double, intents: Seq[FcaSet], props: Seq[Property], attrs: Int,
+               minSupport: Int, stats:StatsCollector, sink:Sink) =
+    createContext(dataStructure, strategy, threshold, intents, props, attrs, minSupport, stats, sink, Context.sorted _)
+  
+  def createContext[T](dataStructure: String, strategy: String, threshold: Double, intents: Seq[FcaSet], props: Seq[Property], attrs: Int,
+               minSupport: Int, stats:StatsCollector, sink:Sink, 
+               creator: (Seq[FcaSet], Seq[Property], Int, Int, StatsCollector, Sink, 
+               ExtentFactory, IntentFactory, MergeStrategy, Sampling) => T): T = {
+    val total = intents.foldLeft(0L){(a,b) => a + b.size }
+    val density = 100*total / (intents.size * attrs).toDouble
+    logger.info("Context density is {}", density)
+    val extFactory = new ArrayExt(intents.length)
+    val regex: Regex = """boundedVotingMajority:(\d+)""".r
+    val strat = strategy match {
+      case "noCounterExamples" => noCounterExamples _
+      case "noop" => noop _
+      case "votingMajority" => votingMajority _
+      case regex(bound) => boundedVotingMajority(bound.toInt) _
+    }
+    val sampling = threshold match {
+      case 1.0 => NoSampling
+      case _ => new RandomSampling(threshold)
+    }
+    val context = dataStructure match {
+      case "sparse" =>
+        val intFactory = new ArrayInt(attrs)
+        logger.info("Using sparse data-structure")
+        creator(intents, props, attrs, minSupport, stats, sink, extFactory, intFactory, strat, sampling)
+      case "dense" =>
+        logger.info("Using dense data-structure")
+        val intFactory = new BitInt(attrs)
+        creator(intents, props, attrs, minSupport, stats, sink, extFactory, intFactory, strat, sampling)
+    }
+    context
   }
 }
 
@@ -161,7 +240,7 @@ abstract class Algorithm(context: Context) {
   def output(extent: FcaSet, intent: FcaSet):Unit = {
     if (extent.size >= minSupport) {
       val props = merge(extent, intent)
-      if (!props.empty && sampling.accept(extent, intent) && !(intent == emptyAttrs))
+      if (context.isValid(intent) && !props.empty && sampling.accept(extent, intent) && !(intent == emptyAttrs))
         sink(Hypothesis(intent, props))
     }
   }
@@ -195,33 +274,7 @@ trait QueueAlgorithm[T] extends Algorithm {
 }
 
 object Algorithm extends LazyLogging {
-  def apply(name: String, dataStructure: String, strategy: String, threshold: Double, intents: Seq[FcaSet], props: Seq[Property], attrs: Int,
-               minSupport: Int, threads: Int, stats:StatsCollector, sink:Sink): Algorithm = {
-    val total = intents.foldLeft(0L){(a,b) => a + b.size }
-    val density = 100*total / (intents.size * attrs).toDouble
-    logger.info("Context density is {}", density)
-    val extFactory = new ArrayExt(intents.length)
-    val regex: Regex = """boundedVotingMajority:(\d+)""".r
-    val strat = strategy match {
-      case "noCounterExamples" => noCounterExamples _
-      case "noop" => noop _
-      case "votingMajority" => votingMajority _
-      case regex(bound) => boundedVotingMajority(bound.toInt) _
-    }
-    val sampling = threshold match {
-      case 1.0 => NoSampling
-      case _ => new RandomSampling(threshold)
-    }
-    val context = dataStructure match {
-      case "sparse" =>
-        val intFactory = new ArrayInt(attrs)
-        logger.info("Using sparse data-structure")
-        Context.sorted(intents, props, attrs, minSupport, stats, sink, extFactory, intFactory, strat, sampling)
-      case "dense" =>
-        logger.info("Using dense data-structure")
-        val intFactory = new BitInt(attrs)
-        Context.sorted(intents, props, attrs, minSupport, stats, sink, extFactory, intFactory, strat, sampling)
-    }
+  def apply(name: String, context: Context, threads: Int) = {
     val algo = name match {
       case "cbo" => new CbO(context)
       case "fcbo" => new FCbO(context)
