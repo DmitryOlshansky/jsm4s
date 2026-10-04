@@ -12,6 +12,9 @@ Future goal is to add support for Apache Spark and better integration with other
 
 ## Examples
 
+For distributed CbO generation, see [Spark generate-split](spark/README.md).
+It has a separate Spark entry point; the existing local CLI remains available.
+
 Run any of the `scripts/*.sh`.
 
 A sample ML session against Mushroom data set is as follows.

@@ -7,7 +7,7 @@ import org.eclipse.collections.api.iterator.IntIterator
   * Created by olshanskiy on 7/13/17.
   */
 /// A minimal integer set for FCA computations
-trait FcaSet extends Iterable[Int] {
+trait FcaSet extends Iterable[Int] with Serializable {
   def contains(x: Int): Boolean
 
   def +=(x: Int): FcaSet
