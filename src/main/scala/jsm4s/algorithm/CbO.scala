@@ -26,7 +26,7 @@ class CbO(context: Context) extends Algorithm(context) {
     }
   }
 
-  override def perform = {
+  override def perform(): Unit = {
     val A = ext.full
     val B = rows.fold(int.full)((a, b) => a & b) // full intersection
     method(A, B, context.first)
@@ -57,7 +57,7 @@ class PCbO(context: Context, threads: Int) extends Algorithm(context) {
 
   def enqueue(A: FcaSet, B: FcaSet, y: Int): Unit = {
     pool.submit(new Runnable {
-      def run() {
+      def run(): Unit = {
         method(A, B, y)
       }
     })
@@ -82,7 +82,7 @@ class PCbO(context: Context, threads: Int) extends Algorithm(context) {
     }
   }
 
-  override def perform = {
+  override def perform(): Unit = {
     val A = ext.full
     val B = rows.fold(int.full)((a, b) => a & b) // full intersection
     distribute(A, B, 0)
@@ -96,7 +96,7 @@ class FJCbO(context: Context, threads: Int) extends Algorithm(context) {
   private val cores = pool.getParallelism()
   private val submitted = new AtomicInteger(0)
   
-  def recurse(C: FcaSet, D: FcaSet, j: Int) {
+  def recurse(C: FcaSet, D: FcaSet, j: Int): Unit = {
     if (submitted.get() > cores * 4) {
       method(C, D, j + 1)
     } else {
@@ -129,7 +129,7 @@ class FJCbO(context: Context, threads: Int) extends Algorithm(context) {
     }
   }
 
-  override def perform = {
+  override def perform(): Unit = {
     val A = ext.full
     val B = rows.fold(int.full)((a, b) => a & b) // full intersection
     method(A, B, 0)

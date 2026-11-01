@@ -51,7 +51,7 @@ abstract class GenericFCbO(context: Context)
     }
   }
 
-  override def perform = {
+  override def perform() : Unit = {
     val A = ext.full
     val B = rows.fold(int.full)((a, b) => a & b) // full intersection
     val implied = Array.ofDim[FcaSet](attributes)
@@ -81,10 +81,10 @@ class PFCbO(context: Context, threads: Int) extends GenericFCbO(context)  {
     }
   }
 
-  override def perform = {
+  override def perform(): Unit = {
     val fn = () => super.perform()
     pool.submit(new Runnable() {
-      def run() {
+      def run(): Unit = {
         fn()
       }
     })
@@ -111,10 +111,10 @@ class FJFCbO(context: Context, threads: Int) extends GenericFCbO(context)  {
     }
   }
 
-  override def perform = {
+  override def perform(): Unit = {
     val fn = () => super.perform()
     pool.submit(new Runnable() {
-      def run() {
+      def run() : Unit = {
         fn()
       }
     })

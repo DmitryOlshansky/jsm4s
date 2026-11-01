@@ -4,18 +4,19 @@ organization := "olshansky.me"
 
 maintainer := "dmitry@olshansky.me"
 
-scalaVersion := "2.12.20"
+scalaVersion := "2.13.18"
 
 scalacOptions := Seq("-unchecked", "-feature", "-deprecation", "-encoding", "utf8")
 
 libraryDependencies ++= Seq(
-  "org.rogach" %% "scallop" % "3.0.3",
+  "org.rogach" %% "scallop" % "6.0.1",
   "org.eclipse.collections" % "eclipse-collections" % "13.0.0",
-  "com.github.tototoshi" %% "scala-csv" % "1.3.4",
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
+  "org.scala-lang.modules" %% "scala-parallel-collections" % "1.3.0",
+  "com.github.tototoshi" %% "scala-csv" % "2.0.0",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
   "org.slf4j" % "slf4j-api" % "1.7.5",
-  "ch.qos.logback" % "logback-classic" % "1.2.3",
-  "org.scalatest" %% "scalatest" % "3.0.3" % "test"
+  "ch.qos.logback" % "logback-classic" % "1.6.6",
+  "org.scalatest" %% "scalatest" % "3.2.20" % "test"
 )
 
 enablePlugins(GitVersioning)
@@ -31,10 +32,10 @@ lazy val root = project.in(file("."))
 
 lazy val spark = project.in(file("spark")).dependsOn(root).settings(
   name := "jsm4s-spark",
-  scalaVersion := "2.12.20",
+  scalaVersion := "2.13.18",
   libraryDependencies ++= Seq(
     "org.apache.spark" %% "spark-core" % "3.5.9" % Provided,
-    "org.scalatest" %% "scalatest" % "3.0.3" % Test
+    "org.scalatest" %% "scalatest" % "3.2.20" % Test
   ),
   assembly / mainClass := Some("jsm4s.spark.SparkGenerateSplit"),
   assembly / assemblyJarName := "jsm4s-spark-assembly.jar",

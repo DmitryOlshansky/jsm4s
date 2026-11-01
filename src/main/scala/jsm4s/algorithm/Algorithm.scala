@@ -55,7 +55,7 @@ class StreamSink(header: String, factory: PropertyFactory, out: OutputStream) ex
   writer.write(header + "\n")
 
   override def apply(h: Hypothesis) = {
-    val str = h.intent.mkString(" ") + " | " + factory.decode(h.props) + "\n"
+    val str = h.intent.makeString(" ") + " | " + factory.decode(h.props) + "\n"
     writer.synchronized {
       writer.write(str)
     }
@@ -69,7 +69,7 @@ class StreamSink(header: String, factory: PropertyFactory, out: OutputStream) ex
 class ArraySink extends Sink {
   private val buffer = mutable.ArrayBuffer[Hypothesis]()
 
-  override def apply(h: Hypothesis) = {
+  override def apply(h: Hypothesis): Unit = {
     buffer.synchronized {
       buffer += h
     }
@@ -77,11 +77,11 @@ class ArraySink extends Sink {
 
   override def close(): Unit = {}
 
-  def hypotheses:Seq[Hypothesis] = buffer
+  def hypotheses:Seq[Hypothesis] = buffer.toSeq
 }
 
 object NullSink extends Sink {
-  override def apply(h: Hypothesis) {
+  override def apply(h: Hypothesis) : Unit = {
 
   }
   override def close(): Unit = {}
@@ -102,8 +102,8 @@ class RandomSampling(val threshold: Double) extends Sampling {
 
 case class ConceptClosure(val hasSupport: Boolean, val extent: FcaSet, val intent: FcaSet)
 
-class Context(val rows: Seq[FcaSet],
-              val props: Seq[Property],
+class Context(val rows: IndexedSeq[FcaSet],
+              val props: IndexedSeq[Property],
               val attributes: Int,
               val minSupport: Int,
               val stats: StatsCollector,
@@ -119,8 +119,8 @@ class Context(val rows: Seq[FcaSet],
 }
 
 class PartitionedContext(
-                        rows: Seq[FcaSet],
-                        props: Seq[Property],
+                        rows: IndexedSeq[FcaSet],
+                        props: IndexedSeq[Property],
                         attributes: Int,
                         minSupport: Int,
                         stats: StatsCollector,
@@ -137,8 +137,8 @@ class PartitionedContext(
 }
 
 object Context extends LazyLogging {
-  def sorted(rows: Seq[FcaSet],
-             props: Seq[Property],
+  def sorted(rows: IndexedSeq[FcaSet],
+             props: IndexedSeq[Property],
              attributes: Int,
              minSupport: Int,
              stats: StatsCollector,
@@ -152,8 +152,8 @@ object Context extends LazyLogging {
     new Context(sorted, props, attributes, minSupport, stats, proc, ext, int, strategy, sampling)
   }
 
-  def partitioned(rows: Seq[FcaSet],
-                  props: Seq[Property],
+  def partitioned(rows: IndexedSeq[FcaSet],
+                  props: IndexedSeq[Property],
                   attributes: Int,
                   minSupport: Int,
                   stats: StatsCollector,
@@ -176,18 +176,18 @@ object Context extends LazyLogging {
     partitions
   }
 
-  def mkSingleContext(dataStructure: String, strategy: String, threshold: Double, intents: Seq[FcaSet], props: Seq[Property], attrs: Int,
+  def mkSingleContext(dataStructure: String, strategy: String, threshold: Double, intents: IndexedSeq[FcaSet], props: IndexedSeq[Property], attrs: Int,
                minSupport: Int, stats:StatsCollector, sink:Sink) =
     createContext(dataStructure, strategy, threshold, intents, props, attrs, minSupport, stats, sink, Context.sorted _)
   
-  def mkSplitContext(dataStructure: String, strategy: String, threshold: Double, intents: Seq[FcaSet], props: Seq[Property], attrs: Int,
+  def mkSplitContext(dataStructure: String, strategy: String, threshold: Double, intents: IndexedSeq[FcaSet], props: IndexedSeq[Property], attrs: Int,
                minSupport: Int, stats:StatsCollector, sink:Sink, parts: Int) =
     createContext(dataStructure, strategy, threshold, intents, props, attrs, minSupport, stats, sink, 
       (rows, props, attrs, minSupport, stats, sink, ext, int, strategy, sampling) => Context.partitioned(rows, props, attrs, minSupport, stats, sink, ext, int, strategy, sampling, parts))
 
-  def createContext[T](dataStructure: String, strategy: String, threshold: Double, intents: Seq[FcaSet], props: Seq[Property], attrs: Int,
+  def createContext[T](dataStructure: String, strategy: String, threshold: Double, intents: IndexedSeq[FcaSet], props: IndexedSeq[Property], attrs: Int,
                minSupport: Int, stats:StatsCollector, sink:Sink, 
-               creator: (Seq[FcaSet], Seq[Property], Int, Int, StatsCollector, Sink, 
+               creator: (IndexedSeq[FcaSet], IndexedSeq[Property], Int, Int, StatsCollector, Sink, 
                ExtentFactory, IntentFactory, MergeStrategy, Sampling) => T): T = {
     val total = intents.foldLeft(0L){(a,b) => a + b.size }
     val density = 100*total / (intents.size * attrs).toDouble

@@ -38,7 +38,7 @@ class DynSortCbO(context: Context) extends Algorithm(context) {
       }
     }
 
-    override def perform = {
+    override def perform() = {
       val A = ext.full
       val B = rows.fold(int.full)((a, b) => a & b) // full intersection
       val visited = int.empty

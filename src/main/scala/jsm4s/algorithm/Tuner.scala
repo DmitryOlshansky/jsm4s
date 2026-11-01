@@ -8,6 +8,8 @@ import jsm4s.property.Property
 import jsm4s.algorithm.Strategies.MergeStrategy
 import jsm4s.property.PropertyFactory
 
+import scala.collection.parallel.CollectionConverters._
+
 class Tuner(
     val hypotheses: Seq[Hypothesis], 
     val attrs: Int,
@@ -46,7 +48,7 @@ class Tuner(
                 }
             }
         }
-        bads
+        bads.toSeq
     }
 
     def tune(attrsCutoff: Int, threshold: Int): Seq[Hypothesis] = {

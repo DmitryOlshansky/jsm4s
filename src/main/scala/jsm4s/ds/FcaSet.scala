@@ -30,7 +30,7 @@ trait FcaSet extends Iterable[Int] with Serializable {
 
   def subsetOf(that: FcaSet, upTo: Int): Boolean
 
-  override def mkString(start: String, sep: String, end: String): String = {
+  def makeString(start: String, sep: String, end: String): String = {
     val sb = new java.lang.StringBuilder()
     sb.append(start)
     val it = intIterator()
@@ -45,7 +45,7 @@ trait FcaSet extends Iterable[Int] with Serializable {
     sb.toString()
   }
 
-  override def mkString(sep: String): String = mkString("", sep, "")
+  def makeString(sep: String): String = makeString("", sep, "")
 
   def intIterator(): IntIterator
 

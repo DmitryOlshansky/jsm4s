@@ -8,15 +8,15 @@ import jsm4s.ds.{BitSet, FcaSet, IntentFactory}
 import jsm4s.property.{BinaryProperty, OrdinalProperty, Composite, Property, PropertyFactory}
 
 import scala.collection.mutable.ListBuffer
-import scala.collection.{Seq, SortedMap, SortedSet, mutable}
+import scala.collection.{SortedMap, SortedSet, mutable}
 import scala.io.Source
 import scala.io.Codec
 import scala.util.Random
 
 import org.eclipse.collections.impl.list.mutable.primitive.IntArrayList
 
-case class FIMI(intents: Seq[FcaSet],
-                props: Seq[Property],
+case class FIMI(intents: IndexedSeq[FcaSet],
+                props: IndexedSeq[Property],
                 header: String,
                 attrs: Int,
                 factory: PropertyFactory)
@@ -30,7 +30,7 @@ object FIMI {
     (attrsDescr.toInt, PropertyFactory(propertyDescr))
   }
 
-  def random(attributes: Int, objects: Int, density: Double, output: OutputStream) {
+  def random(attributes: Int, objects: Int, density: Double, output: OutputStream): Unit = {
     val header = s"""# attributes: ${attributes} properties: B(1,2)\n"""
     output.write(header.getBytes("UTF-8"))
     val rng = new Random()
@@ -48,7 +48,7 @@ object FIMI {
     output.close()
   }
 
-  def encode(input: InputStream, output: OutputStream, properties: List[Int]) = {
+  def encode(input: InputStream, output: OutputStream, properties: List[Int]): Unit = {
     val reader = CSVReader.open(new InputStreamReader(input))
     // for each index map of value --> count of records with this value
     val valuesDistribution = mutable.SortedMap[Int, mutable.SortedMap[String, Int]]()
@@ -203,7 +203,7 @@ object FIMI {
       properties += factory.encode(reader.properties)
       reader.clear()
     }
-    FIMI(intents, properties, header, attrs, factory)
+    FIMI(intents.toIndexedSeq, properties.toIndexedSeq, header, attrs, factory)
   }
 }
 
@@ -224,7 +224,7 @@ class FIMILineReader {
     }
   }
 
-  def read(line: String) {
+  def read(line: String): Unit = {
     var idx = 0
     var value = 0
     var inattr = false
@@ -247,7 +247,7 @@ class FIMILineReader {
     }
   }
 
-  def clear() {
+  def clear(): Unit = {
     properties = null
     attributes.clear()
   }

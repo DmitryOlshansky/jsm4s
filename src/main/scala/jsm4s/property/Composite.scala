@@ -2,6 +2,7 @@ package jsm4s.property
 
 import jsm4s.Utils.ensure
 import scala.collection.mutable
+import scala.collection.immutable
 
 case class Composite(value: Seq[Property]) extends Property {
 
@@ -11,7 +12,7 @@ case class Composite(value: Seq[Property]) extends Property {
     for (i <- result.indices) {
       result(i) = value(i) & rhs(i)
     }
-    Composite(result)
+    Composite(immutable.ArraySeq.unsafeWrapArray(result))
   }
 
   override def empty = !value.exists(p => !p.empty)
@@ -40,14 +41,14 @@ object Composite {
           i += 1
           val j = i
           while(i < description.length && description.charAt(i) != ')') i += 1
-          onBinary(description.slice(j, i).split(",").map(_.trim))
+          onBinary(immutable.ArraySeq.unsafeWrapArray(description.slice(j, i).split(",")).map(_.trim))
         case 'O' => 
           i += 1
           ensure(description.charAt(i) == '(', new PropertyException("Expected '(' in ordinal property marker"))
           i += 1
           val j = i
           while(i < description.length && description.charAt(i) != ')') i += 1
-          onOrdinal(description.slice(j, i).split(",").map(_.trim))
+          onOrdinal(immutable.ArraySeq.unsafeWrapArray(description.slice(j, i).split(",")).map(_.trim))
         case _ => throw new PropertyException(s"Unsupported property type marker `$head`")
       }
       i += 1
@@ -61,7 +62,8 @@ object Composite {
         keys => buf += new BinaryProperty.Factory(keys),
         keys => buf += new OrdinalProperty.Factory(keys)
       )(description)
-      (buf.toSeq, new Composite(buf.map(_.tau)), new Composite(buf.map(_.empty)))
+      val s = buf.toSeq
+      (s, new Composite(s.map(_.tau)), new Composite(s.map(_.empty)))
     }
 
     def encode(x: String) = {
@@ -69,7 +71,7 @@ object Composite {
       val props = items.zipWithIndex.map { pair =>
         factories(pair._2).encode(pair._1)
       }
-      new Composite(props)
+      new Composite(immutable.ArraySeq.unsafeWrapArray(props))
     }
 
     def decode(p: Property): String = {

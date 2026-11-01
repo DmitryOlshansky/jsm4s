@@ -9,6 +9,7 @@ import jsm4s.algorithm._
 import jsm4s.ds.{FcaSet, BitInt}
 import jsm4s.property.Property
 import scala.util.Random
+import scala.collection.parallel.CollectionConverters._
 
 class BaggedPredictor(private val predictors: Seq[Predictor]) extends (FcaSet => Property) {
   override def apply(intent: FcaSet): Property = {
@@ -31,7 +32,7 @@ object Script extends App with LazyLogging {
     val stats = new SimpleCollector
     val size = src.props.size
     val sampled = rng.shuffle(0.until(size).toList).slice(0, size / folds)
-    val subset = FIMI(sampled.map(src.intents), sampled.map(src.props), src.header, src.attrs, src.factory)
+    val subset = FIMI(sampled.map(src.intents).toIndexedSeq, sampled.map(src.props).toIndexedSeq, src.header, src.attrs, src.factory)
     timeIt("Generation of a fold model") {
       val ctx = Context.mkSingleContext("dense", "noCounterExamples", 1.0, subset.intents, subset.props, subset.attrs, 2, stats, sink)
       Algorithm(algo, ctx, 1).run()

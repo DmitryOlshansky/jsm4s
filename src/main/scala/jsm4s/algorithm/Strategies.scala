@@ -5,6 +5,7 @@ import jsm4s.property.{BinaryProperty, OrdinalProperty, Composite, Property}
 import jsm4s.Utils.ensure
 
 import scala.collection.mutable
+import scala.collection.Seq
 
 object Strategies {
 

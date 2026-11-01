@@ -10,6 +10,8 @@ import jsm4s.property.{Composite, Property}
 import jsm4s.ds.{ArrayInt, BitInt}
 import jsm4s.algorithm.Strategies.MergeStrategy
 
+import scala.collection.parallel.CollectionConverters._
+
 object JSM extends LazyLogging {
 
   private def intentFactoryFactory(dataStructure: String ) =
@@ -27,8 +29,9 @@ object JSM extends LazyLogging {
     val stats = new SimpleCollector
     if (strategy == "noop") {
       val groups = data.intents.zip(data.props).groupBy(_._2.key)
-      groups.mapValues { g =>
-        val ctx = Context.mkSingleContext(dataStructure, strategy, threshold, g.map(_._1), g.map(_._2), data.attrs, minSupport, stats, sink)
+      groups.view.mapValues { g =>
+        val seq = g.toSeq
+        val ctx = Context.mkSingleContext(dataStructure, strategy, threshold, seq.map(_._1), seq.map(_._2), data.attrs, minSupport, stats, sink)
         Algorithm(algorithm, ctx, threads)
       }.foreach(_._2.run(false))
       sink.close()
@@ -100,7 +103,7 @@ object JSM extends LazyLogging {
   }
 
   def jsm(input: File, tau: File, output: File, algorithm: String, dataStructure: String, strategy: String, threshold: Double, minSupport: Int,
-          threads: Int, debug: Boolean, mergeStrategy: Seq[Property]=>Property) = {
+          threads: Int, debug: Boolean, mergeStrategy: MergeStrategy) = {
     val factory = intentFactoryFactory(dataStructure)
     val training = timeIt("Loading training examples")(FIMI.load(new FileInputStream(input), factory))
     val examples = timeIt("Loading tau examples")(FIMI.load(new FileInputStream(tau), factory))
