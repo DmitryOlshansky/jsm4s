@@ -45,12 +45,18 @@ class ResumableCbO(context: Context, saved: Option[CbOState] = None) extends Alg
   def snapshot(): CbOState = CbOState(attributes, rows.size, context.first,
     stack.toVector)
 
-  def advance(maxSteps: Long): CbOProgress = {
+  def advance(maxSteps: Long): CbOProgress = advanceUntil(maxSteps)(false)
+
+  /** Stop between transitions when the caller's batch/backpressure limit is met.
+    * The predicate must not mutate the miner or shared sets. A closure scan is
+    * still atomic; pending output remains on the stack if we stop before emitting.
+    */
+  def advanceUntil(maxSteps: Long)(shouldStop: => Boolean): CbOProgress = {
     require(maxSteps >= 0, "maxSteps must be nonnegative")
     var steps = 0L
     var closures = 0L
     var failures = 0L
-    while (steps < maxSteps && stack.nonEmpty) {
+    while (steps < maxSteps && stack.nonEmpty && !shouldStop) {
       val frame = stack.last
       if (frame.emitPending) {
         output(frame.extent, frame.intent)

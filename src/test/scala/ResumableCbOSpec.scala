@@ -129,6 +129,24 @@ class ResumableCbOSpec extends FunSuite with Matchers {
     new ResumableCbO(context(rows, after, new Counters), Some(completed)).advance(100).steps shouldBe 0L
   }
 
+  test("caller stop predicate pauses only between transitions and preserves pending output") {
+    val rows = Seq(Seq(0, 1), Seq(0, 2))
+    val out = ArrayBuffer.empty[String]
+    val miner = new ResumableCbO(context(rows, out, new Counters))
+    val initial = contents(miner.snapshot())
+    miner.advanceUntil(100)(true).steps shouldBe 0L
+    contents(miner.snapshot()) shouldEqual initial
+    miner.advanceUntil(100)(out.nonEmpty).steps shouldBe 1L
+    out.toVector shouldEqual Vector("0")
+    miner.snapshot().frames.last.emitPending shouldBe false
+    val expected = ArrayBuffer.empty[String]
+    new CbO(context(rows, expected, new Counters)).run(false)
+    miner.run(false)
+    out.toVector shouldEqual expected.toVector
+    miner.advanceUntil(100)(false).done shouldBe true
+    intercept[IllegalArgumentException](miner.advanceUntil(-1)(true))
+  }
+
   test("zero budget is a no-op and first attribute is preserved") {
     val out = ArrayBuffer.empty[String]
     val rows = Seq(Seq(0, 1), Seq(1, 2))
