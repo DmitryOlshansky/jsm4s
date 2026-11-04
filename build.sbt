@@ -28,7 +28,10 @@ enablePlugins(JavaAppPackaging)
 git.useGitDescribe := true
 
 // Keep the existing application and its native-packager launchers unchanged.
-lazy val root = project.in(file("."))
+lazy val root = project.in(file(".")).settings(
+  // Scala collection serialization proxies need the same loader as snapshot classes.
+  Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
+)
 
 lazy val spark = project.in(file("spark")).dependsOn(root).settings(
   name := "jsm4s-spark",

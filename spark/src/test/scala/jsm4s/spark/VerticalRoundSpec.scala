@@ -5,14 +5,15 @@ import jsm4s.FIMI
 import jsm4s.algorithm._
 import jsm4s.ds.{ArrayExt, ArrayInt, BitInt, FcaSet}
 import jsm4s.property.BinaryProperty
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 import scala.collection.mutable.ArrayBuffer
 
-class VerticalRoundSpec extends FunSuite with Matchers {
+class VerticalRoundSpec extends AnyFunSuite with Matchers {
   private val factory = new BinaryProperty.Factory(Seq("1", "2"))
   private def data(rows: Seq[Set[Int]], attrs: Int): FIMI = {
     val ints = new ArrayInt(attrs)
-    FIMI(rows.map(r => ints.values(r.toSeq.sorted)), rows.map(_ => BinaryProperty.Positive),
+    FIMI(rows.map(r => ints.values(r.toSeq.sorted)).toIndexedSeq, rows.map(_ => BinaryProperty.Positive).toIndexedSeq,
       s"# attributes: $attrs properties: B(1,2)", attrs, factory)
   }
   private def signature(c: SupportedVerticalCandidate) =
@@ -59,7 +60,7 @@ class VerticalRoundSpec extends FunSuite with Matchers {
     val ints = new BitInt(plan.metadata.attributes)
     val rows = plan.vertical.rows.map(r => ints.values(r.toSeq)).toVector
     val out = Vector.newBuilder[(Vector[Int], Int)]
-    val context = new Context(rows, Seq.empty, plan.metadata.attributes, support,
+    val context = new Context(rows, Vector.empty, plan.metadata.attributes, support,
       new NullCollector, NullSink, new ArrayExt(rows.size), ints,
       Strategies.noCounterExamples, NoSampling) {
       override def first: Int = plan.vertical.cut
@@ -144,7 +145,7 @@ class VerticalRoundSpec extends FunSuite with Matchers {
 
   test("property filtering removes conflicts and duplicate rows retain their votes and support") {
     val input = data(Seq(Set(0, 1), Set(0, 1), Set(0, 1), Set.empty), 2)
-      .copy(props = Seq(BinaryProperty.Positive, BinaryProperty.Negative,
+      .copy(props = Vector(BinaryProperty.Positive, BinaryProperty.Negative,
         BinaryProperty.Positive, BinaryProperty.Positive))
     val options = MiningOptions(1, 2)
     val plan = VerticalPlan.prepare(input, options, 1)

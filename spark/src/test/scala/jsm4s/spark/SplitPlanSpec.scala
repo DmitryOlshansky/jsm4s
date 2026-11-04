@@ -5,13 +5,14 @@ import jsm4s.{FIMI, JSM}
 import jsm4s.algorithm.{Hypothesis, Sink}
 import jsm4s.ds.ArrayInt
 import jsm4s.property.BinaryProperty
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class SplitPlanSpec extends FunSuite with Matchers {
+class SplitPlanSpec extends AnyFunSuite with Matchers {
   private val factory = new BinaryProperty.Factory(Seq("1", "2"))
   private def data(rows: Seq[Set[Int]], attrs: Int): FIMI = {
     val ints = new ArrayInt(attrs)
-    FIMI(rows.map(r => ints.values(r.toSeq.sorted)), rows.map(_ => BinaryProperty.Positive),
+    FIMI(rows.map(r => ints.values(r.toSeq.sorted)).toIndexedSeq, rows.map(_ => BinaryProperty.Positive).toIndexedSeq,
       s"# attributes: $attrs properties: B(1,2)", attrs, factory)
   }
   private def mine(input: FIMI, options: MiningOptions): Seq[String] = {
@@ -21,7 +22,7 @@ class SplitPlanSpec extends FunSuite with Matchers {
       def apply(h: Hypothesis): Unit = out += h.intent.toSeq.sorted.mkString(",")
       def close(): Unit = ()
     }))
-    out.sorted
+    out.toVector.sorted
   }
   private def oracle(rows: Seq[Set[Int]], attrs: Int, support: Int): Seq[String] = {
     (1 until (1 << attrs)).flatMap { mask =>

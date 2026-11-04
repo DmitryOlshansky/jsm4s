@@ -5,15 +5,16 @@ import jsm4s.{FIMI, JSM}
 import jsm4s.algorithm.{Hypothesis, Sink}
 import jsm4s.ds.ArrayInt
 import jsm4s.property.{PropertyException, PropertyFactory}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 import scala.collection.mutable.ArrayBuffer
 
-class VerticalPropertiesSpec extends FunSuite with Matchers {
+class VerticalPropertiesSpec extends AnyFunSuite with Matchers {
   private def input(rows: Seq[Set[Int]], attrs: Int, values: Seq[String],
                     description: String = "B(1,2)"): FIMI = {
     val ints = new ArrayInt(attrs)
     val factory = PropertyFactory(description)
-    FIMI(rows.map(r => ints.values(r.toSeq.sorted)), values.map(factory.encode),
+    FIMI(rows.map(r => ints.values(r.toSeq.sorted)).toIndexedSeq, values.map(factory.encode).toIndexedSeq,
       s"# attributes: $attrs properties: $description", attrs, factory)
   }
   private def roundTrip[A](value: A): A = {
@@ -65,7 +66,7 @@ class VerticalPropertiesSpec extends FunSuite with Matchers {
         def close(): Unit = ()
       })
     }
-    out.sorted.toVector
+    out.toVector.sorted.toVector
   }
   private def reference(data: FIMI, options: MiningOptions): Vector[String] = {
     val body = data.header + "\n" + data.intents.zip(data.props).map { case (intent, prop) =>

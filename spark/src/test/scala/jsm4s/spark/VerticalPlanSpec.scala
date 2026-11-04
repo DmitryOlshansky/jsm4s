@@ -5,13 +5,14 @@ import jsm4s.FIMI
 import jsm4s.algorithm._
 import jsm4s.ds.{ArrayInt, BitInt}
 import jsm4s.property.BinaryProperty
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class VerticalPlanSpec extends FunSuite with Matchers {
+class VerticalPlanSpec extends AnyFunSuite with Matchers {
   private val factory = new BinaryProperty.Factory(Seq("1", "2"))
   private def data(rows: Seq[Set[Int]], attrs: Int): FIMI = {
     val ints = new ArrayInt(attrs)
-    FIMI(rows.map(r => ints.values(r.toSeq.sorted)), rows.map(_ => BinaryProperty.Positive),
+    FIMI(rows.map(r => ints.values(r.toSeq.sorted)).toIndexedSeq, rows.map(_ => BinaryProperty.Positive).toIndexedSeq,
       s"# attributes: $attrs properties: B(1,2)", attrs, factory)
   }
   private def sortedRows(input: FIMI, metadata: SplitMetadata): Seq[Set[Int]] = {
@@ -31,7 +32,7 @@ class VerticalPlanSpec extends FunSuite with Matchers {
 
   test("cut keeps frequent trailing attributes with global IDs and preserves every row/property") {
     val input = data(Seq(Set(0, 2), Set(0, 2), Set(0, 1), Set.empty), 3)
-      .copy(props = Seq(BinaryProperty.Positive, BinaryProperty.Negative,
+      .copy(props = Vector(BinaryProperty.Positive, BinaryProperty.Negative,
         BinaryProperty.Positive, BinaryProperty.Negative))
     val plan = VerticalPlan.prepare(input, MiningOptions(3, 1), 2)
     plan.metadata.order.toVector shouldEqual Vector(1, 2, 0)

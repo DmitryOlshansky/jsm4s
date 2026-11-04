@@ -3,10 +3,11 @@ package jsm4s.algorithm
 import java.io._
 import jsm4s.ds._
 import jsm4s.property.BinaryProperty
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 import scala.collection.mutable.ArrayBuffer
 
-class ResumableCbOSpec extends FunSuite with Matchers {
+class ResumableCbOSpec extends AnyFunSuite with Matchers {
   private class Counters extends StatsCollector {
     var closures = 0L
     var failures = 0L
@@ -21,7 +22,7 @@ class ResumableCbOSpec extends FunSuite with Matchers {
       def apply(h: Hypothesis): Unit = { out += h.intent.mkString(",") }
       def close(): Unit = fail("advance must not close the caller's sink")
     }
-    new Context(rows.map(int.values), rows.map(_ => BinaryProperty.Positive), 3, 1,
+    new Context(rows.map(int.values).toIndexedSeq, rows.map(_ => BinaryProperty.Positive).toIndexedSeq, 3, 1,
       stats, sink, new ArrayExt(rows.size), int, Strategies.noCounterExamples,
       NoSampling) { override def first: Int = firstAttribute }
   }

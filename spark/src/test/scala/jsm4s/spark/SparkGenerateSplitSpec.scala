@@ -3,10 +3,12 @@ package jsm4s.spark
 import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.{Files, Path}
 import org.apache.spark.{SparkConf, SparkContext, TaskContext}
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 import scala.collection.JavaConverters._
 
-class SparkGenerateSplitSpec extends FunSuite with Matchers with BeforeAndAfterAll {
+class SparkGenerateSplitSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll {
   private var sc: SparkContext = _
   private val temp = Files.createTempDirectory("jsm4s-spark-test-")
   override def beforeAll(): Unit = {
